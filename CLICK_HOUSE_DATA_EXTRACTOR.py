@@ -14,15 +14,28 @@ from datetime import date
 from datetime import timedelta, timezone
 
 class Click_House_Data_Extractor :
-    def __init__(self):
-        pass
 
-def connect_db() :
-    global Click_House_Engine, Click_House_Conn, MariaDB_Engine, MariaDB_Engine_Conn
-    Click_House_Engine = create_engine('clickhouse://analysis:analysis@2020@192.168.3.230:8123/MOBON_ANALYSIS')
-    Click_House_Conn = Click_House_Engine.connect()
-    MariaDB_Engine = create_engine('mysql+pymysql://dyyang:dyyang123!@192.168.100.108:3306/dreamsearch')
-    MariaDB_Engine_Conn = MariaDB_Engine.connect()
+    def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password ):
+        self.clickhouse_id = clickhouse_id
+        self.clickhouse_password = clickhouse_password
+        self.maria_id = maria_id
+        self.maria_password = maria_password
+
+
+        self.Click_House_Engine = None
+        self.Click_House_Conn = None
+
+        self.MariaDB_Engine = None
+        self.MariaDB_Engine_Conn = None
+
+        self.connect_db()
+
+    def connect_db(self) :
+        self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
+                                                'MOBON_ANALYSIS'.format(self.clickhouse_id, clickhouse_password))
+        self.Click_House_Conn = self.Click_House_Engine
+        MariaDB_Engine = create_engine('mysql+pymysql://dyyang:dyyang123!@192.168.100.108:3306/dreamsearch')
+        MariaDB_Engine_Conn = MariaDB_Engine.connect()
 
 def Extract_Adver_Cate_Info() :
     connect_db()
