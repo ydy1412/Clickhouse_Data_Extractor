@@ -13,6 +13,10 @@ import calendar
 from datetime import date
 from datetime import timedelta, timezone
 
+class Click_House_Data_Extractor :
+    def __init__(self):
+        pass
+
 def connect_db() :
     global Click_House_Engine, Click_House_Conn, MariaDB_Engine, MariaDB_Engine_Conn
     Click_House_Engine = create_engine('clickhouse://analysis:analysis@2020@192.168.3.230:8123/MOBON_ANALYSIS')
