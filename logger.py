@@ -20,16 +20,16 @@ class Logger :
             self.log_handler = logging.FileHandler(self.log_file)
             self.logger.addHandler(self.log_handler)
 
-        def __timestamp(self) :
-            return str(datetime.now(tz=self.local_tz).isoformat())
+    def __timestamp(self) :
+        return str(datetime.now(tz=self.local_tz).isoformat())
 
-        def log(self, event, event_value) :
-            log = {
-                'timestamp' : self.__timestamp(),
-                'component' : self.name,
-                'log' : {
-                    'event' : event,
-                    'event_value' : event_value
-                }
+    def log(self, event, event_value) :
+        log = {
+            'timestamp' : self.__timestamp(),
+            'component' : self.name,
+            'log' : {
+                'event' : event,
+                'event_value' : event_value
             }
-            self.logger.info(json.dumps(log))
+        }
+        self.logger.info(json.dumps(log))
