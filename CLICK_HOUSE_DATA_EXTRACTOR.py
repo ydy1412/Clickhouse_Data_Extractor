@@ -12,6 +12,7 @@ import datetime
 import calendar
 from datetime import date
 from datetime import timedelta, timezone
+from logger import Logger
 
 class Click_House_Data_Extractor :
 
@@ -21,7 +22,6 @@ class Click_House_Data_Extractor :
         self.maria_id = maria_id
         self.maria_password = maria_password
 
-
         self.Click_House_Engine = None
         self.Click_House_Conn = None
 
@@ -29,6 +29,8 @@ class Click_House_Data_Extractor :
         self.MariaDB_Engine_Conn = None
 
         self.connect_db()
+        self.Extract_Adver_Cate_Info()
+        self.Extract_Media_Property_Info()
 
     def connect_db(self) :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
@@ -110,7 +112,6 @@ class Click_House_Data_Extractor :
             for i in range(1, 18):
                 result = pd.read_sql(PAR_PROPERTY_INFO_sql.format(i), self.MariaDB_Engine_Conn)
                 result_list.append(result)
-                print('PAR_PROPERTY_INFO_sql ', i)
             self.Media_Info_Df = pd.concat(result_list)
             self.Media_Info_Df['MEDIA_SCRIPT_NO'] = self.Media_Info_Df['MEDIA_SCRIPT_NO'].astype('str')
             return True
@@ -197,13 +198,23 @@ class Click_House_Data_Extractor :
                 Ms_List = pd.read_sql(Ms_List_Sql, self.MariaDB_Engine_Conn)['MEDIA_SCRIPT_NO']
                 print("second try happend")
                 Media_Script_No_Dict[PLTFOM_TP_CODE] = Ms_List
-            self.Media_Script_No_Dict = Media_Script_No_Dict
-            return True
+            return Media_Script_No_Dict
         except :
             return False
 
-    def Extract_View_Df(self, stats_dttm_hh, Media_Sciprt_List_Dict, Click_Df, Adver_Cate_Df, Media_Property_Df ) :
-        for PLTFOM_TP_CODE, Media_Script_List in Media_Sciprt_List_Dict.items():
+    def Extract_View_Df(self,
+                        stats_dttm_hh,
+                        Maximum_Data_Size = 2000000,
+                        Sample_Size = 500000) :
+        Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
+        i = 0
+        if Media_Script_No_Dict == False :
+            while i < 5 :
+                i += 1
+                Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
+            if Media_Script_No_Dict == False:
+                return "Extract_Media_Script_List Function error"
+        for PLTFOM_TP_CODE, Media_Script_List in Media_Script_No_Dict.items():
             Merged_Df_List = []
             Media_Script_List_Shape = Media_Script_List.shape[0]
             i = 1
@@ -256,44 +267,52 @@ class Click_House_Data_Extractor :
                 """.format(MEDIA_SCRIPT_NO, str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:])
                 View_Df_sql = text(View_Df_sql)
                 try:
-                    View_Df = pd.read_sql_query(View_Df_sql, Click_House_Conn)
-                    Click_View_Df = pd.merge(View_Df, Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
+                    View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
+                    Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
                                              how='left')
                     Merged_Df_List.append(Click_View_Df)
                 except:
-                    connect_db()
-                    View_Df = pd.read_sql_query(View_Df_sql, Click_House_Conn)
+                    self.connect_db()
+                    View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
                     Click_View_Df = pd.merge(View_Df, Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
                                              how='left')
                     Merged_Df_List.append(Click_View_Df)
                 Total_Data_Cnt += Click_View_Df.shape[0]
-                if Total_Data_Cnt >= 2000000 :
+                if Total_Data_Cnt >= Maximum_Data_Size :
                     break
             Concated_Df = pd.concat(Merged_Df_List)
-            Concated_Df = pd.merge(Concated_Df, Adver_Cate_Df, on=['ADVER_ID'])
-            Concated_Df = pd.merge(Concated_Df, Media_Property_Df, on=['MEDIA_SCRIPT_NO'])
+            Concated_Df = pd.merge(Concated_Df, self.Adver_Cate_Df, on=['ADVER_ID'])
+            Concated_Df = pd.merge(Concated_Df, self.Media_Info_Df, on=['MEDIA_SCRIPT_NO'])
             Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
-            if Concated_Df.shape[0] <= 500000:
+            if Concated_Df.shape[0] <= Sample_Size:
                 final_df = Concated_Df.drop(columns=['KOREA_DATE'])
             else:
-                final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(500000)
+                final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
             final_df.to_csv("test_{0}.csv".format(PLTFOM_TP_CODE))
         return True
 
+
+
 if __name__ == "__main__":
-    connect_db()
+    clickhouse_id = input("click house id : ")
+    clickhouse_password = input("clickhouse password : ")
+    maria_id = input("maria id : ")
+    maria_password = input("maria password : ")
+    click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password, maria_id, maria_password)
     batch_date = datetime.datetime.now()
     date_delta = timedelta(days=10)
     extract_date = batch_date - date_delta
     extract_date = extract_date.strftime('%Y%m%d')
     extract_date_list = [extract_date +'0{0}'.format(i) if i < 10 else extract_date + str(i) for i in range(0,24) ]
-    Adver_Cate_Df = Extract_Adver_Cate_Info()
-    Media_Property_Df = Extract_Media_Property_Info()
-    for extract_date in extract_date_list :
-        Click_Df = Extract_Click_Df(extract_date)
-        print("CLick_Df extracted")
-        Media_Sciprt_List_Dict = Extract_Media_Script_List(extract_date)
-        print("Media_Sciprt_List_Dict extracted")
-        Final_View_Df = Extract_View_Df(extract_date,Media_Sciprt_List_Dict,Click_Df,Adver_Cate_Df,Media_Property_Df)
-        print(Final_View_Df)
-        break
+    print(click_house_context.maria_id, click_house_context.maria_password, click_house_context.Click_House_Conn,
+          click_house_context.MariaDB_Engine_Conn)
+    # Adver_Cate_Df = Extract_Adver_Cate_Info()
+    # Media_Property_Df = Extract_Media_Property_Info()
+    # for extract_date in extract_date_list :
+    #     Click_Df = Extract_Click_Df(extract_date)
+    #     print("CLick_Df extracted")
+    #     Media_Sciprt_List_Dict = Extract_Media_Script_List(extract_date)
+    #     print("Media_Sciprt_List_Dict extracted")
+    #     Final_View_Df = Extract_View_Df(extract_date,Media_Sciprt_List_Dict,Click_Df,Adver_Cate_Df,Media_Property_Df)
+    #     print(Final_View_Df)
+    #     break

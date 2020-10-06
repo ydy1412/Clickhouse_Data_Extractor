@@ -1,6 +1,6 @@
 import signal
 
-from CLICK_HOUSE_DATA_EXTRACTOR import Click_House_Data_Extractor
+from click_house_data_extractor import Click_House_Data_Extractor
 
 class Worker :
     def __init__(self, id, log_file):
