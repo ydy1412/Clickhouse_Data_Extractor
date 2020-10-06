@@ -16,11 +16,12 @@ from logger import Logger
 
 class Click_House_Data_Extractor :
 
-    def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password ):
+    def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, log_name, log_file ):
         self.clickhouse_id = clickhouse_id
         self.clickhouse_password = clickhouse_password
         self.maria_id = maria_id
         self.maria_password = maria_password
+        self.logger = Logger(log_name, log_file)
 
         self.Click_House_Engine = None
         self.Click_House_Conn = None
@@ -28,17 +29,18 @@ class Click_House_Data_Extractor :
         self.MariaDB_Engine = None
         self.MariaDB_Engine_Conn = None
 
-        self.connect_db()
-        self.Extract_Adver_Cate_Info()
-        self.Extract_Media_Property_Info()
+        self.logger.log("connect_db", self.connect_db())
+        self.logger.log("Extract_Adver_Cate_info function ", self.Extract_Adver_Cate_Info())
+        self.logger.log("Extract_Media_Property_Info function " , self.Extract_Media_Property_Info())
 
     def connect_db(self) :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
                                                 'MOBON_ANALYSIS'.format(self.clickhouse_id, self.clickhouse_password))
         self.Click_House_Conn = self.Click_House_Engine.connect()
-        self.MariaDB_Engine = create_engine('mysql+pymysql://dyyang:dyyang123!@192.168.100.108:3306/dreamsearch'
+        self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
                                             .format(self.maria_id, self.maria_password))
         self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
+        return True
 
     def Extract_Adver_Cate_Info(self) :
         self.connect_db()
@@ -274,7 +276,7 @@ class Click_House_Data_Extractor :
                 except:
                     self.connect_db()
                     View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
-                    Click_View_Df = pd.merge(View_Df, Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
+                    Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
                                              how='left')
                     Merged_Df_List.append(Click_View_Df)
                 Total_Data_Cnt += Click_View_Df.shape[0]
@@ -292,20 +294,22 @@ class Click_House_Data_Extractor :
         return True
 
 
-
 if __name__ == "__main__":
+    logger_name = input("logger name is : ")
+    logger_file = input("logger file name is : ")
     clickhouse_id = input("click house id : ")
     clickhouse_password = input("clickhouse password : ")
     maria_id = input("maria id : ")
     maria_password = input("maria password : ")
-    click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password, maria_id, maria_password)
+    click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password,
+                                                     maria_id, maria_password,
+                                                     logger_name, logger_file)
     batch_date = datetime.datetime.now()
     date_delta = timedelta(days=10)
     extract_date = batch_date - date_delta
     extract_date = extract_date.strftime('%Y%m%d')
     extract_date_list = [extract_date +'0{0}'.format(i) if i < 10 else extract_date + str(i) for i in range(0,24) ]
-    print(click_house_context.maria_id, click_house_context.maria_password, click_house_context.Click_House_Conn,
-          click_house_context.MariaDB_Engine_Conn)
+    print("Success")
     # Adver_Cate_Df = Extract_Adver_Cate_Info()
     # Media_Property_Df = Extract_Media_Property_Info()
     # for extract_date in extract_date_list :
