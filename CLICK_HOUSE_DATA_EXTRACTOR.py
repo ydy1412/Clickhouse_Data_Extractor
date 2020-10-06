@@ -32,116 +32,124 @@ class Click_House_Data_Extractor :
 
     def connect_db(self) :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
-                                                'MOBON_ANALYSIS'.format(self.clickhouse_id, clickhouse_password))
-        self.Click_House_Conn = self.Click_House_Engine
-        MariaDB_Engine = create_engine('mysql+pymysql://dyyang:dyyang123!@192.168.100.108:3306/dreamsearch')
-        MariaDB_Engine_Conn = MariaDB_Engine.connect()
+                                                'MOBON_ANALYSIS'.format(self.clickhouse_id, self.clickhouse_password))
+        self.Click_House_Conn = self.Click_House_Engine.connect()
+        self.MariaDB_Engine = create_engine('mysql+pymysql://dyyang:dyyang123!@192.168.100.108:3306/dreamsearch'
+                                            .format(self.maria_id, self.maria_password))
+        self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
 
-def Extract_Adver_Cate_Info() :
-    connect_db()
-    Adver_Cate_Df_sql = """
-            select
-                MCUI.USER_ID as ADVER_ID, ctgr_info.* 
-                from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
-                left join
+    def Extract_Adver_Cate_Info(self) :
+        self.connect_db()
+        try :
+            Adver_Cate_Df_sql = """
+                    select
+                        MCUI.USER_ID as ADVER_ID, ctgr_info.* 
+                        from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
+                        left join
+                        (
+                        SELECT 
+                        third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
+                        second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
+                        first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
+                        from dreamsearch.MOB_CTGR_INFO third_depth
+                        join dreamsearch.MOB_CTGR_INFO second_depth
+                        join dreamsearch.MOB_CTGR_INFO first_depth
+                        on 1=1 
+                        AND third_depth.CTGR_DEPT = 3
+                        AND second_depth.CTGR_DEPT = 2
+                        AND first_depth.CTGR_DEPT = 1
+                        AND second_depth.USER_TP_CODE = '01'
+                        AND second_depth.USER_TP_CODE = first_depth.USER_TP_CODE
+                        AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
+                        AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
+                        AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
+                        on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
+                 """
+            Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, self.MariaDB_Engine_Conn)
+            self.Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
+            return True
+        except :
+            print("Extract_Adver_Cate_Info error happend")
+            return False
+
+    def Extract_Media_Property_Info(self) :
+        self.connect_db()
+        try :
+            PAR_PROPERTY_INFO_sql = """
+            select 
+                ms.no as MEDIA_SCRIPT_NO,
+                MEDIASITE_NO,
+                ms.userid as MEDIA_ID,
+                mpi.SCRIPT_TP_CODE,
+                mpi.MEDIA_SIZE_CODE,
+                product_type as "ENDING_TYPE",
+                m_bacon_yn as "M_BACON_YN",
+                ADVRTS_STLE_TP_CODE as "ADVRTS_STLE_TP_CODE",
+                media_cate_info.scate as "MEDIA_CATE_INFO",
+                media_cate_info.ctgr_nm as "MEDIA_CATE_NAME"
+                from dreamsearch.media_script as ms
+                join
                 (
-                SELECT 
-                third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
-                second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
-                first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
-                from dreamsearch.MOB_CTGR_INFO third_depth
-                join dreamsearch.MOB_CTGR_INFO second_depth
-                join dreamsearch.MOB_CTGR_INFO first_depth
-                on 1=1 
-                AND third_depth.CTGR_DEPT = 3
-                AND second_depth.CTGR_DEPT = 2
-                AND first_depth.CTGR_DEPT = 1
-                AND second_depth.USER_TP_CODE = '01'
-                AND second_depth.USER_TP_CODE = first_depth.USER_TP_CODE
-                AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
-                AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
-                AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
-                on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
-         """
-    Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, MariaDB_Engine_Conn)
-    Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
-    return Adver_Cate_Df
+                SELECT no, userid, scate, ctgr_nm
+                FROM dreamsearch.media_site as ms
+                join
+                (SELECT mpci.CTGR_SEQ, CTGR_SORT_NO, mci.CTGR_NM
+                FROM dreamsearch.MEDIA_PAR_CTGR_INFO as mpci
+                join dreamsearch.MOB_CTGR_INFO as mci
+                on mpci.CTGR_SEQ = mci.CTGR_SEQ_NEW) as media_ctgr_info
+                on ms.scate = media_ctgr_info.CTGR_SORT_NO) as media_cate_info
+                join
+                (select PAR_SEQ, ADVRTS_PRDT_CODE,SCRIPT_TP_CODE, MEDIA_SIZE_CODE 
+                from dreamsearch.MEDIA_PAR_INFO
+                where PAR_EVLT_TP_CODE ='04') as mpi
+                on ms.mediasite_no = media_cate_info.no
+                and media_cate_info.scate = {0}
+                and mpi.par_seq = ms.no;
+            """
+            result_list = []
+            for i in range(1, 18):
+                result = pd.read_sql(PAR_PROPERTY_INFO_sql.format(i), self.MariaDB_Engine_Conn)
+                result_list.append(result)
+                print('PAR_PROPERTY_INFO_sql ', i)
+            self.Media_Info_Df = pd.concat(result_list)
+            self.Media_Info_Df['MEDIA_SCRIPT_NO'] = self.Media_Info_Df['MEDIA_SCRIPT_NO'].astype('str')
+            return True
+        except :
+            return False
 
-def Extract_Media_Property_Info() :
-    connect_db()
-    PAR_PROPERTY_INFO_sql = """
-    select 
-        ms.no as MEDIA_SCRIPT_NO,
-        MEDIASITE_NO,
-        ms.userid as MEDIA_ID,
-        mpi.SCRIPT_TP_CODE,
-        mpi.MEDIA_SIZE_CODE,
-        product_type as "ENDING_TYPE",
-        m_bacon_yn as "M_BACON_YN",
-        ADVRTS_STLE_TP_CODE as "ADVRTS_STLE_TP_CODE",
-        media_cate_info.scate as "MEDIA_CATE_INFO",
-        media_cate_info.ctgr_nm as "MEDIA_CATE_NAME"
-        from dreamsearch.media_script as ms
-        join
-        (
-        SELECT no, userid, scate, ctgr_nm
-        FROM dreamsearch.media_site as ms
-        join
-        (SELECT mpci.CTGR_SEQ, CTGR_SORT_NO, mci.CTGR_NM
-        FROM dreamsearch.MEDIA_PAR_CTGR_INFO as mpci
-        join dreamsearch.MOB_CTGR_INFO as mci
-        on mpci.CTGR_SEQ = mci.CTGR_SEQ_NEW) as media_ctgr_info
-        on ms.scate = media_ctgr_info.CTGR_SORT_NO) as media_cate_info
-        join
-        (select PAR_SEQ, ADVRTS_PRDT_CODE,SCRIPT_TP_CODE, MEDIA_SIZE_CODE 
-        from dreamsearch.MEDIA_PAR_INFO
-        where PAR_EVLT_TP_CODE ='04') as mpi
-        on ms.mediasite_no = media_cate_info.no
-        and media_cate_info.scate = {0}
-        and mpi.par_seq = ms.no;
-    """
-    result_list = []
-    for i in range(1, 18):
-        result = pd.read_sql(PAR_PROPERTY_INFO_sql.format(i), MariaDB_Engine_Conn)
-        result_list.append(result)
-        print('PAR_PROPERTY_INFO_sql ', i)
-    Media_Info_Df = pd.concat(result_list)
-    Media_Info_Df['MEDIA_SCRIPT_NO'] = Media_Info_Df['MEDIA_SCRIPT_NO'].astype('str')
-    return Media_Info_Df
+    def Extract_Click_Stats_Date(self, stats_dttm_hh, hours=1):
+        str_stats_dttm = str(stats_dttm_hh)
+        stats_date = datetime.datetime(int(str_stats_dttm[:4]), int(str_stats_dttm[4:6]), int(str_stats_dttm[6:8]),
+                                       int(str_stats_dttm[8:]))
+        hour_delta = timedelta(hours=hours)
+        previus_date = stats_date + hour_delta
+        previus_date = previus_date.strftime('%Y%m%d%H')
+        return int(stats_dttm_hh), int(previus_date)
 
-def Extract_Click_Stats_Date(stats_dttm_hh, hours=1):
-    str_stats_dttm = str(stats_dttm_hh)
-    stats_date = datetime.datetime(int(str_stats_dttm[:4]), int(str_stats_dttm[4:6]), int(str_stats_dttm[6:8]),
-                                   int(str_stats_dttm[8:]))
-    hour_delta = timedelta(hours=hours)
-    previus_date = stats_date + hour_delta
-    previus_date = previus_date.strftime('%Y%m%d%H')
-    return int(stats_dttm_hh), int(previus_date)
-
-def Extract_Click_Df(stats_dttm_hh) :
-    connect_db()
-    Click_Date_List = [Extract_Click_Stats_Date(stats_dttm_hh,1)[0],Extract_Click_Stats_Date(stats_dttm_hh,1)[1]]
-    Click_Data_List = []
-    for Click_Date_Key in Click_Date_List:
-        Click_Df_sql = """
-        select toTimeZone(createdDate, 'Asia/Seoul')            as KOREA_DATE,
-                      inventoryId as MEDIA_SCRIPT_NO,
-                      adCampain as SITE_CODE,
-                      remoteIp as REMOTE_IP
-               from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
-               where 1 = 1
-                 and inventoryId <> ''
-                 and adCampain <> ''
-                 and remoteIp <> ''
-                 and logType = 'C'
-                 and toYYYYMMDD(createdDate) = {0}
-                 and toHour(createdDate) = {1}
-        """.format(str(Click_Date_Key)[:-2], str(Click_Date_Key)[-2:])
-        Click_Df_sql = text(Click_Df_sql)
-        Click_Df = pd.read_sql_query(Click_Df_sql, Click_House_Conn)
-        Click_Data_List.append(Click_Df)
-    Click_Df = pd.concat(Click_Data_List)
-    return Click_Df
+    def Extract_Click_Df(self, stats_dttm_hh) :
+        self.connect_db()
+        Click_Date_List = [Extract_Click_Stats_Date(stats_dttm_hh,1)[0],Extract_Click_Stats_Date(stats_dttm_hh,1)[1]]
+        Click_Data_List = []
+        for Click_Date_Key in Click_Date_List:
+            Click_Df_sql = """
+            select toTimeZone(createdDate, 'Asia/Seoul')            as KOREA_DATE,
+                          inventoryId as MEDIA_SCRIPT_NO,
+                          adCampain as SITE_CODE,
+                          remoteIp as REMOTE_IP
+                   from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
+                   where 1 = 1
+                     and inventoryId <> ''
+                     and adCampain <> ''
+                     and remoteIp <> ''
+                     and logType = 'C'
+                     and toYYYYMMDD(createdDate) = {0}
+                     and toHour(createdDate) = {1}
+            """.format(str(Click_Date_Key)[:-2], str(Click_Date_Key)[-2:])
+            Click_Df_sql = text(Click_Df_sql)
+            Click_Df = pd.read_sql_query(Click_Df_sql, Click_House_Conn)
+            Click_Data_List.append(Click_Df)
+        Click_Df = pd.concat(Click_Data_List)
+        return Click_Df
 
 def Extract_Media_Script_List(stats_dttm_hh) :
     Media_Script_No_Dict = {'01': None, '02': None}
