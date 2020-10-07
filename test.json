@@ -1,3 +1,6 @@
 {"timestamp": "2020-10-06T18:20:26.421130+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
 {"timestamp": "2020-10-06T18:20:27.084750+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
 {"timestamp": "2020-10-06T18:20:34.058549+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
+{"timestamp": "2020-10-07T12:28:54.157180+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
+{"timestamp": "2020-10-07T12:28:54.787215+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
+{"timestamp": "2020-10-07T12:29:02.056957+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}

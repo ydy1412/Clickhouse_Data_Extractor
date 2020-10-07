@@ -200,7 +200,8 @@ class Click_House_Data_Extractor :
                 Ms_List = pd.read_sql(Ms_List_Sql, self.MariaDB_Engine_Conn)['MEDIA_SCRIPT_NO']
                 print("second try happend")
                 Media_Script_No_Dict[PLTFOM_TP_CODE] = Ms_List
-            return Media_Script_No_Dict
+            self.Media_Script_No_Dict = Media_Script_No_Dict
+            return True
         except :
             return False
 
