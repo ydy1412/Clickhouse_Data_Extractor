@@ -13,14 +13,23 @@ import calendar
 from datetime import date
 from datetime import timedelta, timezone
 from logger import Logger
+from clickhouse_sqlalchemy import Table, engines
+from clickhouse_driver import Client
+
 
 class Click_House_Data_Extractor :
 
-    def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, log_name, log_file ):
+    def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, local_clickhouse_id, local_clickhouse_password,
+                  local_clickhouse_db_name, log_name, log_file ):
         self.clickhouse_id = clickhouse_id
         self.clickhouse_password = clickhouse_password
         self.maria_id = maria_id
         self.maria_password = maria_password
+        self.local_clickhouse_id = local_clickhouse_id
+        self.local_clickhouse_password = local_clickhouse_password
+
+        self.local_clickhouse_db_name = local_clickhouse_db_name
+
         self.logger = Logger(log_name, log_file)
 
         self.Click_House_Engine = None
@@ -74,6 +83,62 @@ class Click_House_Data_Extractor :
             return True
         except :
             print("Extract_Adver_Cate_Info error happend")
+            return False
+
+    def connect_local_db(self):
+        self.Local_Click_House_Engine = create_engine(
+            'clickhouse://{0}:{1}@localhost/{2}'.format(self.local_clickhouse_id, self.local_clickhouse_password,
+                                                        self.local_clickhouse_db_name))
+        self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
+        return True
+
+    def create_local_table(self, table_name):
+        client = Client(host='localhost')
+        DDL_sql = """
+        CREATE TABLE IF NOT EXISTS {0}.{1}
+        (
+            STATS_DTTM  UInt32,
+            STATS_HH  UInt8,
+            STATS_MINUTE UInt8, 
+            MEDIA_SCRIPT_NO String,
+            SITE_CODE String,
+            ADVER_ID String,
+            REMOTE_IP String,
+            ADVRTS_PRDT_CODE Nullable(String),
+            ADVRTS_TP_CODE Nullable(String),
+            PLTFOM_TP_CODE Nullable(String),
+            PCODE Nullable(String),
+            PNAME Nullable(String), 
+            BROWSER_CODE Nullable(String),
+            FREQLOG Nullable(String),
+            T_TIME Nullable(String),
+            KWRD_SEQ Nullable(String),
+            GENDER Nullable(String),
+            AGE Nullable(String),
+            OS_CODE Nullable(String),
+            CLICK_YN UInt8,
+            BATCH_DTTM DateTime
+        ) ENGINE = MergeTree
+        PARTITION BY  STATS_DTTM
+        ORDER BY (STATS_DTTM, STATS_HH)
+        SAMPLE BY STATS_DTTM
+        TTL BATCH_DTTM + INTERVAL 90 DAY
+        SETTINGS index_granularity=8192
+        """.format(self.local_clickhouse_db_name, table_name)
+        result = client.execute(DDL_sql)
+        return result
+
+    def check_local_table_name(self, table_name):
+        self.connect_local_db()
+        check_table_name_sql = """
+            SHOW TABLES FROM {0}
+        """.format(self.local_clickhouse_db_name)
+        sql_text = text(check_table_name_sql)
+        sql_result = list(pd.read_sql(sql_text, self.Local_Click_House_Conn)['name'])
+        print(sql_result)
+        if table_name in sql_result:
+            return True
+        else:
             return False
 
     def Extract_Media_Property_Info(self) :
@@ -186,7 +251,6 @@ class Click_House_Data_Extractor :
         except: 
             pass
         return True
-        
 
     def Extract_Media_Script_List(self, stats_dttm_hh) :
         self.connect_db()
@@ -327,14 +391,29 @@ class Click_House_Data_Extractor :
 
 
 if __name__ == "__main__":
-    logger_name = input("logger name is : ")
-    logger_file = input("logger file name is : ")
-    clickhouse_id = input("click house id : ")
-    clickhouse_password = input("clickhouse password : ")
-    maria_id = input("maria id : ")
-    maria_password = input("maria password : ")
+
+    # logger_name = input("logger name is : ")
+    # logger_file = input("logger file name is : ")
+    # clickhouse_id = input("click house id : ")
+    # clickhouse_password = input("clickhouse password : ")
+    # maria_id = input("maria id : ")
+    # maria_password = input("maria password : ")
+
+    # test용 property data
+    logger_name = "test"
+    logger_file = "test.json"
+    clickhouse_id = "analysis"
+    clickhouse_password = "analysis@2020"
+    maria_id = "analysis"
+    maria_password = "analysis@2020"
+    local_clickhouse_id = "click_house_test1"
+    local_clickhouse_password = "0000"
+    local_clickhouse_DB_name = "TEST"
+
     click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password,
                                                      maria_id, maria_password,
+                                                     local_clickhouse_id,local_clickhouse_password,
+                                                     local_clickhouse_DB_name,
                                                      logger_name, logger_file)
     batch_date = datetime.datetime.now()
     date_delta = timedelta(days=10)
