@@ -1,14 +1,14 @@
-    import logging
-    import time
-    import json
-    from datetime import datetime
+import logging
+import time
+import json
+from datetime import datetime
 
-    import pytz
-    from dateutil.tz import tzlocal
+import pytz
+from dateutil.tz import tzlocal
 
-    class Logger :
-        def __init__(self, name, log_file):
-            self.log_file = log_file
+class Logger :
+    def __init__(self, name, log_file):
+        self.log_file = log_file
         self.name = name
 
         self.local_tz = tzlocal()
