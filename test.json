@@ -4,3 +4,6 @@
 {"timestamp": "2020-10-07T12:28:54.157180+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
 {"timestamp": "2020-10-07T12:28:54.787215+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
 {"timestamp": "2020-10-07T12:29:02.056957+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
+{"timestamp": "2020-10-08T15:46:34.820072+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
+{"timestamp": "2020-10-08T15:46:35.347094+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
+{"timestamp": "2020-10-08T15:46:42.318813+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}

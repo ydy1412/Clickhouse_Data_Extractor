@@ -25,7 +25,7 @@ class Local_Click_House_DB_Context :
         self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
         return True
 
-    def create_table_2(self, table_name) :
+    def create_table(self, table_name) :
         client = Client(host='localhost')
         DDL_sql = """
         CREATE TABLE IF NOT EXISTS {0}.{1}
@@ -60,7 +60,6 @@ class Local_Click_House_DB_Context :
         """.format(self.DB_NAME, table_name) 
         result = client.execute(DDL_sql)
         return result
-        
         
     def check_table_name(self,table_name ) : 
         self.connect_local_db()

@@ -156,6 +156,37 @@ class Click_House_Data_Extractor :
             return True
         except :
             return False
+    
+    def Extract_Date_Range_From_DB(self) : 
+        self.connect_db()
+        try : 
+            maria_db_sql = """
+                select min(stats_dttm) as initial_date, max(stats_dttm) as last_date from BILLING.MOB_CAMP_MEDIA_HH_STATS;
+            """
+            maria_db_sql = text(maria_db_sql)
+            result = pd.read_sql(maria_db_sql,self.MariaDB_Engine_Conn)
+            self.maria_initial_date = result['initial_date'].values[0]
+            self.maria_last_date = result['last_date'].values[0]
+        except: 
+            pass
+        
+        try :
+            clickhouse_db_sql = """
+                select
+                min(toYYYYMMDD(createdDate)) as initial_date
+                max(toYYYYMMDD(createdDate)) as last_date 
+                from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
+                where 1=1
+                limit 10;
+            """
+            clickhouse_db_sql = text(clickhouse_db_sql)
+            result = pd.read_sql(clickhouse_db_sql, self.Click_House_Conn)
+            self.clickhouse_initial_date = result['initial_date'].values[0]
+            self.clickhouse_last_date = result['last_date'].values[0]
+        except: 
+            pass
+        return True
+        
 
     def Extract_Media_Script_List(self, stats_dttm_hh) :
         self.connect_db()
@@ -311,6 +342,9 @@ if __name__ == "__main__":
     extract_date = extract_date.strftime('%Y%m%d')
     extract_date_list = [extract_date +'0{0}'.format(i) if i < 10 else extract_date + str(i) for i in range(0,24) ]
     print("Success")
+    click_house_context.Extract_Date_Range_From_DB()
+    print(click_house_context.maria_initial_date)
+    print(click_house_context.maria_last_date)
     # Adver_Cate_Df = Extract_Adver_Cate_Info()
     # Media_Property_Df = Extract_Media_Property_Info()
     # for extract_date in extract_date_list :
