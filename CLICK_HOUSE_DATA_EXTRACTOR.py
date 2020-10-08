@@ -97,6 +97,7 @@ class Click_House_Data_Extractor :
         DDL_sql = """
         CREATE TABLE IF NOT EXISTS {0}.{1}
         (
+            LOG_DTTM DateTime,
             STATS_DTTM  UInt32,
             STATS_HH  UInt8,
             STATS_MINUTE UInt8, 
@@ -140,7 +141,7 @@ class Click_House_Data_Extractor :
             return True
         else:
             return False
-
+                          
     def Extract_Media_Property_Info(self) :
         self.connect_db()
         try :
@@ -293,7 +294,6 @@ class Click_House_Data_Extractor :
                     limit {3};
                 """.format(PLTFOM_TP_CODE,str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:], top_10_cnt)
                 Ms_List = pd.read_sql(Ms_List_Sql, self.MariaDB_Engine_Conn)['MEDIA_SCRIPT_NO']
-                print("second try happend")
                 Media_Script_No_Dict[PLTFOM_TP_CODE] = Ms_List
             self.Media_Script_No_Dict = Media_Script_No_Dict
             return True
@@ -302,6 +302,7 @@ class Click_House_Data_Extractor :
 
     def Extract_View_Df(self,
                         stats_dttm_hh,
+                        table_name,
                         Maximum_Data_Size = 2000000,
                         Sample_Size = 500000) :
         Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
@@ -312,7 +313,7 @@ class Click_House_Data_Extractor :
                 Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
             if Media_Script_No_Dict == False:
                 return "Extract_Media_Script_List Function error"
-        for PLTFOM_TP_CODE, Media_Script_List in Media_Script_No_Dict.items():
+        for PLTFOM_TP_CODE, Media_Script_List in self.Media_Script_No_Dict.items():
             Merged_Df_List = []
             Media_Script_List_Shape = Media_Script_List.shape[0]
             i = 1
@@ -321,11 +322,12 @@ class Click_House_Data_Extractor :
                 print("{0}/{1} start".format(i, Media_Script_List_Shape))
                 i += 1
                 View_Df_sql = """
-                select toYYYYMMDD(toTimeZone(createdDate, 'Asia/Seoul') )  as STATS_DTTM,
+                select 
+                    toTimeZone(createdDate, 'Asia/Seoul') as LOG_DTTM,
+                    toYYYYMMDD(toTimeZone(createdDate, 'Asia/Seoul') )  as STATS_DTTM,
                    toHour(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_HH,
-                   toMinute(toTimeZone(createdDate, 'Asia/Seoul') ) as MINUTE,
+                   toMinute(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_MINUTE,
                           inventoryId as MEDIA_SCRIPT_NO,
-                          logType as LOG_TYPE,
                           adType                                           as ADVRTS_TP_CODE,
                           multiIf(
                                   adProduct IN ('mba', 'nor', 'banner', 'mbw'), '01',
@@ -347,13 +349,13 @@ class Click_House_Data_Extractor :
                           visitParamExtractRaw(productCode, 'productName') as PNAME,
                           remoteIp as REMOTE_IP,
                           visitParamExtractRaw(browser, 'code')            as BROWSER_CODE,
-                          visitParamExtractRaw(browser, 'version')         as BROWSER_VERSION,
                           freqLog as FREQLOG,
                           tTime as T_TIME,
                           kwrdSeq as KWRD_SEQ,
                           gender as GENDER,
                           age as AGE,
-                          osCode as OS_CODE
+                          osCode as OS_CODE,
+                        now() as BATCH_DTTM
                    from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
                    where 1 = 1
                      and inventoryId = '{0}'
@@ -378,20 +380,22 @@ class Click_House_Data_Extractor :
                 Total_Data_Cnt += Click_View_Df.shape[0]
                 if Total_Data_Cnt >= Maximum_Data_Size :
                     break
-            Concated_Df = pd.concat(Merged_Df_List)
-            Concated_Df = pd.merge(Concated_Df, self.Adver_Cate_Df, on=['ADVER_ID'])
-            Concated_Df = pd.merge(Concated_Df, self.Media_Info_Df, on=['MEDIA_SCRIPT_NO'])
-            Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
-            if Concated_Df.shape[0] <= Sample_Size:
-                final_df = Concated_Df.drop(columns=['KOREA_DATE'])
-            else:
-                final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
-            final_df.to_csv("test_{0}.csv".format(PLTFOM_TP_CODE))
+            
+        Concated_Df = pd.concat(Merged_Df_List)
+        Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
+        if Concated_Df.shape[0] <= Sample_Size:
+            final_df = Concated_Df.drop(columns=['KOREA_DATE'])
+        else:
+            final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
+        self.connect_local_db()
+        final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
+        print(final_df.head())
+        print(final_df.shape)
+        print(final_df.columns)
+        print(final_df.info())
         return True
 
-
 if __name__ == "__main__":
-
     # logger_name = input("logger name is : ")
     # logger_file = input("logger file name is : ")
     # clickhouse_id = input("click house id : ")
@@ -415,13 +419,17 @@ if __name__ == "__main__":
                                                      local_clickhouse_id,local_clickhouse_password,
                                                      local_clickhouse_DB_name,
                                                      logger_name, logger_file)
+    click_house_context.create_local_table('TEST_4')
     batch_date = datetime.datetime.now()
     date_delta = timedelta(days=10)
     extract_date = batch_date - date_delta
     extract_date = extract_date.strftime('%Y%m%d')
     extract_date_list = [extract_date +'0{0}'.format(i) if i < 10 else extract_date + str(i) for i in range(0,24) ]
-    print("Success")
     click_house_context.Extract_Date_Range_From_DB()
+    test_date = "2020092201"
+    extract_click_df_result = click_house_context.Extract_Click_Df(test_date)
+    extract_view_df_result = click_house_context.Extract_View_Df(test_date,'TEST_4',5000)
+
     print(click_house_context.maria_initial_date)
     print(click_house_context.maria_last_date)
     # Adver_Cate_Df = Extract_Adver_Cate_Info()
