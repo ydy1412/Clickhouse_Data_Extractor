@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 from sqlalchemy import inspect
 from clickhouse_sqlalchemy import Table, engines
+from clickhouse_driver import Client
 
 import pandas as pd
 import re
@@ -24,33 +25,41 @@ class Local_Click_House_DB_Context :
         self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
         return True
 
-    def create_table(self, table_name) : 
-        self.connect_local_db()
-        metadata = MetaData(bind=self.Local_Click_House_Engine)
-        log_table = Table(table_name, metadata,
-                Column('STATS_DTTM', Integer),
-                Column('STATS_HH', Integer),
-                Column('MINUTE',Integer),
-                Column('MEDIA_SCRIPT_NO',String),
-                Column('ADVRTS_TP_CODE',String, nullable = False),
-                Column('ADVRTS_PRDT_CODE',String, nullable = False),
-                Column('PLTFOM_TP_CODE',String, nullable = False),
-                Column('SITE_CODE',String),
-                Column('ADVER_ID',String),
-                Column('PCODE',String, nullable = False),
-                Column('PNAME',String, nullable = False),
-                Column('REMOTE_IP',String),
-                Column('BROWSER_CODE',String, nullable = False),
-                Column('FREQLOG',String, nullable = False),
-                Column('T_TIME',String, nullable = False),
-                Column('KWRD_SEQ',String, nullable = False),
-                Column('GENDER',String, nullable = False),
-                Column('AGE',String, nullable = False),
-                Column('OS_CODE',String, nullable = False),
-                Column('CLICK_YN',Integer),
-                engines.Memory())
-        log_table.create()
-        return True
+    def create_table_2(self, table_name) :
+        client = Client(host='localhost')
+        DDL_sql = """
+        CREATE TABLE IF NOT EXISTS {0}.{1}
+        (
+            STATS_DTTM  UInt32,
+            STATS_HH  UInt8,
+            STATS_MINUTE UInt8, 
+            MEDIA_SCRIPT_NO String,
+            SITE_CODE String,
+            ADVER_ID String,
+            REMOTE_IP String,
+            ADVRTS_PRDT_CODE Nullable(String),
+            ADVRTS_TP_CODE Nullable(String),
+            PLTFOM_TP_CODE Nullable(String),
+            PCODE Nullable(String),
+            PNAME Nullable(String), 
+            BROWSER_CODE Nullable(String),
+            FREQLOG Nullable(String),
+            T_TIME Nullable(String),
+            KWRD_SEQ Nullable(String),
+            GENDER Nullable(String),
+            AGE Nullable(String),
+            OS_CODE Nullable(String),
+            CLICK_YN UInt8,
+            BATCH_DTTM DateTime
+        ) ENGINE = MergeTree
+        PARTITION BY  STATS_DTTM
+        ORDER BY (STATS_DTTM, STATS_HH)
+        SAMPLE BY STATS_DTTM
+        TTL BATCH_DTTM + INTERVAL 90 DAY
+        SETTINGS index_granularity=8192
+        """.format(self.DB_NAME, table_name) 
+        result = client.execute(DDL_sql)
+        return result
         
         
     def check_table_name(self,table_name ) : 
@@ -59,7 +68,8 @@ class Local_Click_House_DB_Context :
             SHOW TABLES FROM {0}
         """.format(self.DB_NAME)
         sql_text = text(check_table_name_sql)
-        sql_result = list(pd.read_sql(sql_text, self.Local_Click_House_Conn))
+        sql_result = list(pd.read_sql(sql_text, self.Local_Click_House_Conn)['name'])
+        print(sql_result)
         if table_name in sql_result :
             return True
         else :
@@ -67,6 +77,7 @@ class Local_Click_House_DB_Context :
                 
 if __name__ == "__main__" :
     test_context = Local_Click_House_DB_Context("click_house_test1","0000","TEST")
-    print(test_context.create_table("TEST_2"))
-    print(test_context.check_table_name("TEST_2"))
+    # print(test_context.create_table("TEST_2"))
+    # print(test_context.create_table_2("TEST_3"))
+    print(test_context.check_table_name("TEST_3"))
    
