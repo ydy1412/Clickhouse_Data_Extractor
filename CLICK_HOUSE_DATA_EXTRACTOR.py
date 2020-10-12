@@ -455,15 +455,19 @@ if __name__ == "__main__":
 
     elif args.auto.upper() == 'N' :
         # manual extracting logic start
-        stats_dttm = input("extract dttm is (ex) 20200801 : ) ")
-        logger.log("manual_stats_dttm",stats_dttm)
-        stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in range(0, 24)]
-        for Extract_Dttm in stats_dttm_list :
-            extract_click_df_result = click_house_context.Extract_Click_Df(Extract_Dttm)
-            extract_view_df_result = click_house_context.Extract_View_Df(Extract_Dttm, local_table_name, int(data_cnt_per_hour),
-                                                                         int(sample_size))
-            logger.log("Manual_extracting {0} result ".format(Extract_Dttm), extract_view_df_result)
-        # manual extracting logic end
+        start_dttm = input("extract start dttm is (ex) 20200801 ) : " )
+        last_dttm = input("extract last dttm is (ex) 20200827 ) : " )
+        dt_list = pd.date_range(start=start_dttm, end=last_dttm).strftime("%Y%m%d").tolist()
+        
+        for stats_dttm in dt_list :        
+            logger.log("manual_stats_dttm",stats_dttm)
+            stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in range(0, 24)]
+            for Extract_Dttm in stats_dttm_list :
+                extract_click_df_result = click_house_context.Extract_Click_Df(Extract_Dttm)
+                extract_view_df_result = click_house_context.Extract_View_Df(Extract_Dttm, local_table_name, int(data_cnt_per_hour),
+                                                                             int(sample_size))
+                logger.log("Manual_extracting {0} result ".format(Extract_Dttm), extract_view_df_result)
+            # manual extracting logic end
 
     else :
         print("no existed args")
