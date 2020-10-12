@@ -321,7 +321,7 @@ class Click_House_Data_Extractor :
                 i = 1
                 Total_Data_Cnt = 0
                 for MEDIA_SCRIPT_NO in Media_Script_List:
-                    print("{0}/{1} start".format(i, Media_Script_List_Shape))
+                    # print("{0}/{1} start".format(i, Media_Script_List_Shape))
                     i += 1
                     View_Df_sql = """
                     select 
