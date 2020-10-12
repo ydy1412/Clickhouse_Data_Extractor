@@ -97,7 +97,7 @@ class Click_House_Data_Extractor :
         DDL_sql = """
         CREATE TABLE IF NOT EXISTS {0}.{1}
         (
-            LOG_DTTM DateTime,
+            LOG_DTTM DateTime('Asia/Seoul'),
             STATS_DTTM  UInt32,
             STATS_HH  UInt8,
             STATS_MINUTE UInt8, 
@@ -117,6 +117,7 @@ class Click_House_Data_Extractor :
             GENDER Nullable(String),
             AGE Nullable(String),
             OS_CODE Nullable(String),
+            FRAME_COMBI_KEY Nullable(String),
             CLICK_YN UInt8,
             BATCH_DTTM DateTime
         ) ENGINE = MergeTree
@@ -323,7 +324,7 @@ class Click_House_Data_Extractor :
                 i += 1
                 View_Df_sql = """
                 select 
-                    toTimeZone(createdDate, 'Asia/Seoul') as LOG_DTTM,
+                    createdDate as LOG_DTTM,
                     toYYYYMMDD(toTimeZone(createdDate, 'Asia/Seoul') )  as STATS_DTTM,
                    toHour(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_HH,
                    toMinute(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_MINUTE,
@@ -355,6 +356,7 @@ class Click_House_Data_Extractor :
                           gender as GENDER,
                           age as AGE,
                           osCode as OS_CODE,
+                          frameCombiKey as FRAME_COMBI_KEY,
                         now() as BATCH_DTTM
                    from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
                    where 1 = 1
@@ -396,14 +398,24 @@ class Click_House_Data_Extractor :
         return True
 
 if __name__ == "__main__":
-    # logger_name = input("logger name is : ")
-    # logger_file = input("logger file name is : ")
-    # clickhouse_id = input("click house id : ")
-    # clickhouse_password = input("clickhouse password : ")
-    # maria_id = input("maria id : ")
-    # maria_password = input("maria password : ")
 
-    # test용 property data
+    logger_name = input("logger name is : ")
+    logger_file = input("logger file name is : ")
+    clickhouse_id = input("click house id : ")
+    clickhouse_password = input("clickhouse password : ")
+    maria_id = input("maria id : ")
+    maria_password = input("maria password : ")
+    local_clickhouse_id = input("local clickhouse id : " ) 
+    local_clickhouse_password = input("local clickhouse password : " ) 
+    local_clickhouse_DB_name = input("local clickhouse DB name : " )
+    
+    stats_dttm = input("extract dttm is (ex) 20200801 : ) " ) 
+    data_cnt_per_hour = input("the number of data to extract per hour : " )
+    sample_size = input("Sampling size : " ) 
+    
+    
+    """
+    test용 property data
     logger_name = "test"
     logger_file = "test.json"
     clickhouse_id = "analysis"
@@ -413,13 +425,22 @@ if __name__ == "__main__":
     local_clickhouse_id = "click_house_test1"
     local_clickhouse_password = "0000"
     local_clickhouse_DB_name = "TEST"
+    """
 
     click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password,
                                                      maria_id, maria_password,
                                                      local_clickhouse_id,local_clickhouse_password,
                                                      local_clickhouse_DB_name,
                                                      logger_name, logger_file)
-    click_house_context.create_local_table('TEST_4')
+
+    # click_house_context.create_local_table('TEST_5')
+    # automatic extracting logic start
+
+    # automatic extracting logic end
+
+    # manual extracting logic
+
+    # manual extracting logic endedt 
     batch_date = datetime.datetime.now()
     date_delta = timedelta(days=10)
     extract_date = batch_date - date_delta
@@ -428,7 +449,7 @@ if __name__ == "__main__":
     click_house_context.Extract_Date_Range_From_DB()
     test_date = "2020092201"
     extract_click_df_result = click_house_context.Extract_Click_Df(test_date)
-    extract_view_df_result = click_house_context.Extract_View_Df(test_date,'TEST_4',5000)
+    extract_view_df_result = click_house_context.Extract_View_Df(test_date,'TEST_5',5000)
 
     print(click_house_context.maria_initial_date)
     print(click_house_context.maria_last_date)

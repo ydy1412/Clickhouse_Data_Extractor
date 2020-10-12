@@ -43,3 +43,12 @@
 {"timestamp": "2020-10-08T17:27:34.514732+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
 {"timestamp": "2020-10-08T17:27:35.030323+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
 {"timestamp": "2020-10-08T17:27:42.113436+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:46:01.681044+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
+{"timestamp": "2020-10-08T17:46:02.180437+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:46:09.346038+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:55:03.208555+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
+{"timestamp": "2020-10-08T17:55:03.713519+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:55:11.042934+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:56:58.843006+09:00", "component": "test", "log": {"event": "connect_db", "event_value": true}}
+{"timestamp": "2020-10-08T17:56:59.579670+09:00", "component": "test", "log": {"event": "Extract_Adver_Cate_info function ", "event_value": true}}
+{"timestamp": "2020-10-08T17:57:06.534005+09:00", "component": "test", "log": {"event": "Extract_Media_Property_Info function ", "event_value": true}}
