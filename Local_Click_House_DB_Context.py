@@ -41,6 +41,10 @@ class Local_Click_House_DB_Context :
         self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
                                             .format(self.Maria_id, self.Maria_password))
         self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
+        
+        self.Maria_Shop_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.106:3306/dreamsearch'.format(self.Maria_id, self.Maria_password))
+        self.Maria_Shop_Conn = self.Maria_Shop_Engine.connect()
+
         return True
 
     def Extract_Adver_Cate_Info(self):
@@ -122,8 +126,37 @@ class Local_Click_House_DB_Context :
             return False
 
     def Extract_Product_Property_Info(self):
-        self.Product_Info_Df = None
-        pass
+        self.connect_db()
+        try : 
+            PRODUCT_PROPERTY_INFO_sql = """
+            SELECT
+                PRODUCT_CATE_INFO.PRODUCT_CODE as PCODE,
+                PRODUCT_CATE_INFO.ADVER_CATE_NO as PRODUCT_CATE_NO,
+                PRODUCT_CATE_INFO.FIRST_CATE,
+                PRODUCT_CATE_INFO.SECOND_CATE,
+                PRODUCT_CATE_INFO.THIRD_CATE,
+                sd.PRICE
+            FROM
+                (SELECT 
+                    apci.*, apsc.FIRST_CATE
+                    apsc.SECOND_CATE,
+                    apsc.THIRD_CATE
+                FROM dreamsearch.ADVER_PRDT_CATE_INFO as apci
+                join
+                ( SELECT * FROM dreamsearch.ADVER_PRDT_STANDARD_CATE) as apsc
+                    on apci.no = apsc.no) as PRODUCT_CATE_INFO
+                LEFT JOIN
+                ( SELECT PCODE, PRICE
+                FROM
+                dreamsearch.SHOP_DATA ) as sd
+            on PRODUCT_CATE_INFO.PRODUCT_CODE = sd.PCODE;
+            """
+            sql_text = text(PRODUCT_PROPERTY_INFO_sql)
+            self.Product_Info_Df = pd.read_sql(sql_text,self.Maria_Shop_Conn)
+            return True
+        except : 
+            return False
+        
 
     def Extract_Click_View_Log (self, stats_dttm, stats_hh = None, Adver_Info = True,
                                 Media_Info = True, Product_Info = True,
@@ -196,6 +229,7 @@ if __name__ == "__main__" :
                                                 local_clickhouse_id,local_clickhouse_password,
                                                 local_clickhouse_ip,local_clickhouse_DB_name,
                                                 local_clickhouse_Table_name)
-    log_data = test_context.Extract_Click_View_Log('20200924',Product_Info=False,sample_size = 0.1, data_size=100000)
+    log_data = test_context.Extract_Click_View_Log('20200924',sample_size = 0.1, data_size=100000)
     print(test_context.Adver_Cate_Df)
+    print(text_context.Product_Info_Df)
     print(log_data.head())
