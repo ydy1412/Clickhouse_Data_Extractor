@@ -22,7 +22,7 @@ import argparse
 class Click_House_Data_Extractor :
 
     def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, local_clickhouse_id,
-                  local_clickhouse_password, local_clickhouse_db_name ):
+                  local_clickhouse_password, local_clickhouse_db_name, logger_name = "test", logger_file="inner_logger.json" ):
 
         self.clickhouse_id = clickhouse_id
         self.clickhouse_password = clickhouse_password
@@ -33,6 +33,7 @@ class Click_House_Data_Extractor :
         self.local_clickhouse_id = local_clickhouse_id
         self.local_clickhouse_password = local_clickhouse_password
         self.local_clickhouse_db_name = local_clickhouse_db_name
+        self.logger = Logger(logger_name, logger_file)
 
         self.Click_House_Engine = None
         self.Click_House_Conn = None
@@ -46,6 +47,7 @@ class Click_House_Data_Extractor :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
                                                 'MOBON_ANALYSIS'.format(self.clickhouse_id, self.clickhouse_password))
         self.Click_House_Conn = self.Click_House_Engine.connect()
+
         self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
                                             .format(self.maria_id, self.maria_password))
         self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
@@ -274,6 +276,7 @@ class Click_House_Data_Extractor :
                 Click_Df = pd.read_sql_query(Click_Df_sql, self.Click_House_Conn)
                 Click_Data_Df_List.append(Click_Df)
             self.Click_Df = pd.concat(Click_Data_Df_List)
+            self.logger.log("Extract_click_Df_{0}".format(stats_dttm_hh),"success")
             return True
         except :
             return False
@@ -350,6 +353,7 @@ class Click_House_Data_Extractor :
                 """.format(PLTFOM_TP_CODE,str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:], top_ms_cnt)
                 Ms_List = pd.read_sql(Ms_List_Sql, self.MariaDB_Engine_Conn)['MEDIA_SCRIPT_NO']
                 Media_Script_No_Dict[PLTFOM_TP_CODE] = Ms_List
+            self.logger.log("Extract_Media_Script_list function","success")
             self.Media_Script_No_Dict = Media_Script_No_Dict
             return True
         except :
@@ -444,9 +448,12 @@ class Click_House_Data_Extractor :
             else:
                 final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
             self.connect_local_db()
+            self.logger.log("Extract view log to df","success")
             final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
+            self.logger.log("Insert Data to local db","success")
             return True
         except :
+            self.logger.log("Extract View event log function {0} {1}".format(PLTFOM_TP_CODE, MEDIA_SCRIPT_NO), "failed")
             print("something error happend")
             return False
 
