@@ -50,41 +50,6 @@ class Click_House_Data_Extractor :
                                             .format(self.maria_id, self.maria_password))
         self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
         return True
-
-    def Extract_Adver_Cate_Info(self) :
-        self.connect_db()
-        try :
-            Adver_Cate_Df_sql = """
-                    select
-                        MCUI.USER_ID as ADVER_ID, ctgr_info.* 
-                        from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
-                        left join
-                        (
-                        SELECT 
-                        third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
-                        second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
-                        first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
-                        from dreamsearch.MOB_CTGR_INFO third_depth
-                        join dreamsearch.MOB_CTGR_INFO second_depth
-                        join dreamsearch.MOB_CTGR_INFO first_depth
-                        on 1=1 
-                        AND third_depth.CTGR_DEPT = 3
-                        AND second_depth.CTGR_DEPT = 2
-                        AND first_depth.CTGR_DEPT = 1
-                        AND second_depth.USER_TP_CODE = '01'
-                        AND second_depth.USER_TP_CODE = first_depth.USER_TP_CODE
-                        AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
-                        AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
-                        AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
-                        on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
-                 """
-            Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, self.MariaDB_Engine_Conn)
-            self.Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
-            return True
-        except :
-            print("Extract_Adver_Cate_Info error happend")
-            return False
-
     def connect_local_db(self):
         self.Local_Click_House_Engine = create_engine(
             'clickhouse://{0}:{1}@localhost/{2}'.format(self.local_clickhouse_id, self.local_clickhouse_password,
@@ -142,7 +107,41 @@ class Click_House_Data_Extractor :
             return True
         else:
             return False
-                          
+
+    def Extract_Adver_Cate_Info(self) :
+        self.connect_db()
+        try :
+            Adver_Cate_Df_sql = """
+                    select
+                        MCUI.USER_ID as ADVER_ID, ctgr_info.* 
+                        from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
+                        left join
+                        (
+                        SELECT 
+                        third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
+                        second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
+                        first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
+                        from dreamsearch.MOB_CTGR_INFO third_depth
+                        join dreamsearch.MOB_CTGR_INFO second_depth
+                        join dreamsearch.MOB_CTGR_INFO first_depth
+                        on 1=1 
+                        AND third_depth.CTGR_DEPT = 3
+                        AND second_depth.CTGR_DEPT = 2
+                        AND first_depth.CTGR_DEPT = 1
+                        AND second_depth.USER_TP_CODE = '01'
+                        AND second_depth.USER_TP_CODE = first_depth.USER_TP_CODE
+                        AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
+                        AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
+                        AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
+                        on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
+                 """
+            Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, self.MariaDB_Engine_Conn)
+            self.Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
+            return True
+        except :
+            print("Extract_Adver_Cate_Info error happend")
+            return False
+
     def Extract_Media_Property_Info(self) :
         self.connect_db()
         try :
@@ -183,6 +182,61 @@ class Click_House_Data_Extractor :
                 result_list.append(result)
             self.Media_Info_Df = pd.concat(result_list)
             self.Media_Info_Df['MEDIA_SCRIPT_NO'] = self.Media_Info_Df['MEDIA_SCRIPT_NO'].astype('str')
+            return True
+        except :
+            return False
+
+    def Extract_Product_Property_Info(self):
+        self.MariaDB_Shop_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.106:3306/dreamsearch'
+                                            .format(self.maria_id, self.maria_password))
+        self.MariaDB_Shop_Conn = self.MariaDB_Shop_Engine.connect()
+        try :
+            Extract_AdverID_sql = """
+            SELECT 
+                apci.ADVER_ID,
+                apci.PRODUCT_CODE as PCODE,
+                apci.ADVER_CATE_NO as PRODUCT_CATE_CODE,
+                apsc.FIRST_CATE, 
+                apsc.SECOND_CATE, 
+                apsc.THIRD_CATE
+                FROM
+                dreamsearch.ADVER_PRDT_CATE_INFO as apci
+            join
+                (select * 
+                from dreamsearch.ADVER_PRDT_STANDARD_CATE) as apsc
+            on apci.ADVER_CATE_NO = apsc.no;
+            """
+            sql_text = text(Extract_AdverID_sql)
+            result = pd.read_sql(sql_text,self.MariaDB_Shop_Conn)
+            print(result.head())
+            ADVER_ID_LIST = result['ADVER_ID'].unique()
+            number_of_ADVER_ID = len(ADVER_ID_LIST)
+            print(number_of_ADVER_ID)
+            print(int(number_of_ADVER_ID/10))
+            divide_cnt = int(number_of_ADVER_ID/10)
+            Price_Info_List = []
+            i = 0
+
+            for ADVER_ID in ADVER_ID_LIST :
+                i += 1
+                if i % divide_cnt == 0 :
+                    print(i)
+                Price_Info_sql = """
+                SELECT
+                USERID as ADVER_ID,
+                PCODE,
+                PRICE
+                FROM
+                dreamsearch.SHOP_DATA
+                WHERE
+                USERID = '{0}';
+                """.format(ADVER_ID)
+                sql_text = text(Price_Info_sql)
+                Price_Info_List.append(pd.read_sql(sql_text,self.MariaDB_Shop_Conn))
+            Price_Info_df = pd.concat(Price_Info_List)
+            Product_Info_df = pd.merge(result, Price_Info_df, on=['ADVER_ID','PCODE'], how='left')
+            print(Product_Info_df)
+            # Product_Info_df.to_sql('PRODUCT_PROPERTY_INFO', con=self.Local_Click_House_Engine, index=False )
             return True
         except :
             return False
@@ -398,39 +452,44 @@ class Click_House_Data_Extractor :
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--auto",help="(auto : Y, manual : N ) ", default='Y')
+    parser.add_argument("--auto",help="(auto : Y, manual : N, TEST : T ) ", default='T')
     parser.add_argument("--create_table", help="--add_table ~~ ", default = None )
     args = parser.parse_args()
 
+    # For test
+    # logger_name = "test"
+    # logger_file = "test.json"
+    # clickhouse_id = "analysis"
+    # clickhouse_password = "analysis@2020"
+    # maria_id = "dyyang"
+    # maria_password = "dyyang123!"
+    # local_clickhouse_id = "click_house_test1"
+    # local_clickhouse_password = "0000"
+    # local_clickhouse_DB_name = "TEST"
+    # local_table_name = 'TEST10'
+    # data_cnt_per_hour = 1000
+    # sample_size = 1000
+
+    # for service
     logger_name = input("logger name is : ")
     logger_file = input("logger file name is : ")
-    logger = Logger(logger_name, logger_file)
-    logger.log("auto mode", args.auto.upper())
 
     clickhouse_id = input("click house id : ")
     clickhouse_password = input("clickhouse password : ")
     maria_id = input("maria id : ")
     maria_password = input("maria password : ")
-    local_clickhouse_id = input("local clickhouse id : " ) 
-    local_clickhouse_password = input("local clickhouse password : " ) 
+    local_clickhouse_id = input("local clickhouse id : " )
+    local_clickhouse_password = input("local clickhouse password : " )
     local_clickhouse_DB_name = input("local clickhouse DB name : " )
     local_table_name = input("local cllickhouse table name : " )
 
     data_cnt_per_hour = input("the number of data to extract per hour : " )
     sample_size = input("Sampling size : " )
 
-    logger.log("extract start", 'Y')
+    logger = Logger(logger_name, logger_file)
+    logger.log("auto mode", args.auto.upper())
 
-    # test용 property data
-    # logger_name = "test"
-    # logger_file = "test.json"
-    # clickhouse_id = "analysis"
-    # clickhouse_password = "analysis@2020"
-    # maria_id = "analysis"
-    # maria_password = "analysis@2020"
-    # local_clickhouse_id = "click_house_test1"
-    # local_clickhouse_password = "0000"
-    # local_clickhouse_DB_name = "TEST"
+    # logger.log("extract start", 'Y')
 
     # clickhouse data extract context 생성
     click_house_context = Click_House_Data_Extractor(clickhouse_id, clickhouse_password,
@@ -456,12 +515,13 @@ if __name__ == "__main__":
     elif args.auto.upper() == 'N' :
         # manual extracting logic start
         start_dttm = input("extract start dttm is (ex) 20200801 ) : " )
+        from_hh = input("start hour is (ex) 00 hour : 00 ) : ")
         last_dttm = input("extract last dttm is (ex) 20200827 ) : " )
         dt_list = pd.date_range(start=start_dttm, end=last_dttm).strftime("%Y%m%d").tolist()
         
         for stats_dttm in dt_list :        
             logger.log("manual_stats_dttm",stats_dttm)
-            stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in range(0, 24)]
+            stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in range(int(from_hh), 24)]
             for Extract_Dttm in stats_dttm_list :
                 extract_click_df_result = click_house_context.Extract_Click_Df(Extract_Dttm)
                 extract_view_df_result = click_house_context.Extract_View_Df(Extract_Dttm, local_table_name, int(data_cnt_per_hour),
@@ -469,5 +529,8 @@ if __name__ == "__main__":
                 logger.log("Manual_extracting {0} result ".format(Extract_Dttm), extract_view_df_result)
             # manual extracting logic end
 
+    elif args.auto.upper() == 'T' :
+        return_value = click_house_context.Extract_Product_Property_Info()
+        print(return_value)
     else :
-        print("no existed args")
+        pass
