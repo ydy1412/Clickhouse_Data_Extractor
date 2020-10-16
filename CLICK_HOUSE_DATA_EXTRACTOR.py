@@ -457,34 +457,34 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # For test
-    # logger_name = "test"
-    # logger_file = "test.json"
-    # clickhouse_id = "analysis"
-    # clickhouse_password = "analysis@2020"
-    # maria_id = "dyyang"
-    # maria_password = "dyyang123!"
-    # local_clickhouse_id = "click_house_test1"
-    # local_clickhouse_password = "0000"
-    # local_clickhouse_DB_name = "TEST"
-    # local_table_name = 'TEST10'
-    # data_cnt_per_hour = 1000
-    # sample_size = 1000
+    logger_name = "test"
+    logger_file = "test.json"
+    clickhouse_id = "analysis"
+    clickhouse_password = "analysis@2020"
+    maria_id = "dyyang"
+    maria_password = "dyyang123!"
+    local_clickhouse_id = "click_house_test1"
+    local_clickhouse_password = "0000"
+    local_clickhouse_DB_name = "TEST"
+    local_table_name = 'TEST10'
+    data_cnt_per_hour = 1000
+    sample_size = 1000
 
     # for service
-    logger_name = input("logger name is : ")
-    logger_file = input("logger file name is : ")
-
-    clickhouse_id = input("click house id : ")
-    clickhouse_password = input("clickhouse password : ")
-    maria_id = input("maria id : ")
-    maria_password = input("maria password : ")
-    local_clickhouse_id = input("local clickhouse id : " )
-    local_clickhouse_password = input("local clickhouse password : " )
-    local_clickhouse_DB_name = input("local clickhouse DB name : " )
-    local_table_name = input("local cllickhouse table name : " )
-
-    data_cnt_per_hour = input("the number of data to extract per hour : " )
-    sample_size = input("Sampling size : " )
+    # logger_name = input("logger name is : ")
+    # logger_file = input("logger file name is : ")
+    #
+    # clickhouse_id = input("click house id : ")
+    # clickhouse_password = input("clickhouse password : ")
+    # maria_id = input("maria id : ")
+    # maria_password = input("maria password : ")
+    # local_clickhouse_id = input("local clickhouse id : " )
+    # local_clickhouse_password = input("local clickhouse password : " )
+    # local_clickhouse_DB_name = input("local clickhouse DB name : " )
+    # local_table_name = input("local cllickhouse table name : " )
+    #
+    # data_cnt_per_hour = input("the number of data to extract per hour : " )
+    # sample_size = input("Sampling size : " )
 
     logger = Logger(logger_name, logger_file)
     logger.log("auto mode", args.auto.upper())

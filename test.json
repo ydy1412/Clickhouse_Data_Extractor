@@ -25,3 +25,17 @@
 {"timestamp": "2020-10-13T15:21:26.629167+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092412 result ", "event_value": true}}
 {"timestamp": "2020-10-13T15:31:23.954744+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092413 result ", "event_value": true}}
 {"timestamp": "2020-10-13T15:40:18.018671+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092414 result ", "event_value": true}}
+{"timestamp": "2020-10-14T09:56:07.705778+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T09:57:32.564712+09:00", "component": "test", "log": {"event": "extract start", "event_value": "Y"}}
+{"timestamp": "2020-10-14T09:57:58.086078+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T09:58:26.891611+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T09:58:54.665408+09:00", "component": "test", "log": {"event": "extract start", "event_value": "Y"}}
+{"timestamp": "2020-10-14T09:58:55.214292+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-14T10:02:27.909522+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T10:02:28.536311+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-14T10:03:31.102304+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T10:03:31.617470+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-14T10:04:16.237251+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T10:04:16.736226+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-14T10:11:01.669148+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "T"}}
+{"timestamp": "2020-10-14T10:11:02.405666+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
