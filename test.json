@@ -1,0 +1,48 @@
+{"timestamp": "2020-10-13T13:27:03.684622+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "N"}}
+{"timestamp": "2020-10-13T13:28:14.067594+09:00", "component": "test", "log": {"event": "extract start", "event_value": "Y"}}
+{"timestamp": "2020-10-13T13:28:14.936335+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-13T13:28:15.027226+09:00", "component": "test", "log": {"event": "create clickhouse table CLICK_VIEW_YN_LOG success", "event_value": "True"}}
+{"timestamp": "2020-10-13T13:46:12.922714+09:00", "component": "test", "log": {"event": "manual_stats_dttm", "event_value": "20200924"}}
+{"timestamp": "2020-10-13T13:47:02.637487+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092400 result ", "event_value": false}}
+{"timestamp": "2020-10-13T13:47:04.829157+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092401 result ", "event_value": false}}
+{"timestamp": "2020-10-13T13:47:06.497655+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092402 result ", "event_value": false}}
+{"timestamp": "2020-10-13T13:47:35.577341+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "N"}}
+{"timestamp": "2020-10-13T13:48:50.592170+09:00", "component": "test", "log": {"event": "extract start", "event_value": "Y"}}
+{"timestamp": "2020-10-13T13:48:51.183861+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-13T13:49:01.777280+09:00", "component": "test", "log": {"event": "manual_stats_dttm", "event_value": "20200924"}}
+{"timestamp": "2020-10-13T13:57:11.585288+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092400 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:04:12.294242+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092401 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:09:46.768466+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092402 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:14:39.145453+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092403 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:18:58.446356+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092404 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:23:37.247602+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092405 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:29:18.038398+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092406 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:37:15.183953+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092407 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:45:46.895921+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092408 result ", "event_value": true}}
+{"timestamp": "2020-10-13T14:53:55.076626+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092409 result ", "event_value": true}}
+{"timestamp": "2020-10-13T15:02:32.736387+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092410 result ", "event_value": true}}
+{"timestamp": "2020-10-13T15:11:53.257940+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092411 result ", "event_value": true}}
+{"timestamp": "2020-10-13T15:21:26.629167+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092412 result ", "event_value": true}}
+{"timestamp": "2020-10-13T15:31:23.954744+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092413 result ", "event_value": true}}
+{"timestamp": "2020-10-13T15:40:18.018671+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092414 result ", "event_value": true}}
+{"timestamp": "2020-10-14T16:58:47.688841+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "N"}}
+{"timestamp": "2020-10-14T16:58:47.888694+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-14T16:59:16.997509+09:00", "component": "test", "log": {"event": "manual_stats_dttm", "event_value": "20200926"}}
+{"timestamp": "2020-10-14T16:59:21.282934+09:00", "component": "test", "log": {"event": "Extract_click_Df_2020092615", "event_value": "success"}}
+{"timestamp": "2020-10-14T16:59:21.397259+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:04:10.888207+09:00", "component": "test", "log": {"event": "Extract view log to df", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:06:50.031839+09:00", "component": "test", "log": {"event": "Extract View event log function 02 23110", "event_value": "failed"}}
+{"timestamp": "2020-10-14T17:06:50.032302+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092615 result ", "event_value": false}}
+{"timestamp": "2020-10-14T17:06:53.052053+09:00", "component": "test", "log": {"event": "Extract_click_Df_2020092616", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:06:53.159631+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:07:50.399831+09:00", "component": "test", "log": {"event": "Extract View event log function 01 14635", "event_value": "failed"}}
+{"timestamp": "2020-10-14T17:07:50.400063+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092616 result ", "event_value": false}}
+{"timestamp": "2020-10-14T17:07:51.255757+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:07:51.965495+09:00", "component": "test", "log": {"event": "Extract View event log function 01 422968", "event_value": "failed"}}
+{"timestamp": "2020-10-14T17:07:51.965993+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092617 result ", "event_value": false}}
+{"timestamp": "2020-10-14T17:07:52.253789+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:07:52.431839+09:00", "component": "test", "log": {"event": "Extract View event log function 01 422968", "event_value": "failed"}}
+{"timestamp": "2020-10-14T17:07:52.432321+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092618 result ", "event_value": false}}
+{"timestamp": "2020-10-14T17:07:52.864386+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
+{"timestamp": "2020-10-14T17:07:53.068545+09:00", "component": "test", "log": {"event": "Extract View event log function 01 132448", "event_value": "failed"}}
+{"timestamp": "2020-10-14T17:07:53.069012+09:00", "component": "test", "log": {"event": "Manual_extracting 2020092619 result ", "event_value": false}}
