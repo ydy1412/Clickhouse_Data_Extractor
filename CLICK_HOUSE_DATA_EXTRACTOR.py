@@ -22,7 +22,7 @@ import argparse
 class Click_House_Data_Extractor :
 
     def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, local_clickhouse_id,
-                  local_clickhouse_password, local_clickhouse_db_name ):
+                  local_clickhouse_password, local_clickhouse_db_name, logger_name = "test", logger_file="inner_logger.json" ):
 
         self.clickhouse_id = clickhouse_id
         self.clickhouse_password = clickhouse_password
@@ -33,6 +33,7 @@ class Click_House_Data_Extractor :
         self.local_clickhouse_id = local_clickhouse_id
         self.local_clickhouse_password = local_clickhouse_password
         self.local_clickhouse_db_name = local_clickhouse_db_name
+        self.logger = Logger(logger_name, logger_file)
 
         self.Click_House_Engine = None
         self.Click_House_Conn = None
@@ -46,6 +47,7 @@ class Click_House_Data_Extractor :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
                                                 'MOBON_ANALYSIS'.format(self.clickhouse_id, self.clickhouse_password))
         self.Click_House_Conn = self.Click_House_Engine.connect()
+
         self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
                                             .format(self.maria_id, self.maria_password))
         self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
@@ -274,6 +276,7 @@ class Click_House_Data_Extractor :
                 Click_Df = pd.read_sql_query(Click_Df_sql, self.Click_House_Conn)
                 Click_Data_Df_List.append(Click_Df)
             self.Click_Df = pd.concat(Click_Data_Df_List)
+            self.logger.log("Extract_click_Df_{0}".format(stats_dttm_hh),"success")
             return True
         except :
             return False
@@ -350,6 +353,7 @@ class Click_House_Data_Extractor :
                 """.format(PLTFOM_TP_CODE,str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:], top_ms_cnt)
                 Ms_List = pd.read_sql(Ms_List_Sql, self.MariaDB_Engine_Conn)['MEDIA_SCRIPT_NO']
                 Media_Script_No_Dict[PLTFOM_TP_CODE] = Ms_List
+            self.logger.log("Extract_Media_Script_list function","success")
             self.Media_Script_No_Dict = Media_Script_No_Dict
             return True
         except :
@@ -360,95 +364,100 @@ class Click_House_Data_Extractor :
                         table_name,
                         Maximum_Data_Size = 2000000,
                         Sample_Size = 500000) :
-        try :
-            Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
-            i = 0
-            if Media_Script_No_Dict == False :
-                while i < 5 :
-                    i += 1
-                    Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
-                if Media_Script_No_Dict == False:
-                    return "Extract_Media_Script_List Function error"
-            for PLTFOM_TP_CODE, Media_Script_List in self.Media_Script_No_Dict.items():
-                Merged_Df_List = []
-                Media_Script_List_Shape = Media_Script_List.shape[0]
-                i = 1
-                Total_Data_Cnt = 0
-                for MEDIA_SCRIPT_NO in Media_Script_List:
-                    # print("{0}/{1} start".format(i, Media_Script_List_Shape))
-                    i += 1
-                    View_Df_sql = """
-                    select 
-                        createdDate as LOG_DTTM,
-                        toYYYYMMDD(toTimeZone(createdDate, 'Asia/Seoul') )  as STATS_DTTM,
-                       toHour(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_HH,
-                       toMinute(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_MINUTE,
-                              inventoryId as MEDIA_SCRIPT_NO,
-                              adType                                           as ADVRTS_TP_CODE,
-                              multiIf(
-                                      adProduct IN ('mba', 'nor', 'banner', 'mbw'), '01',
-                                      adProduct IN ('sky', 'mbb', 'sky_m'), '02',
-                                      adProduct IN ('ico', 'ico_m'), '03',
-                                      adProduct IN ('scn'), '04',
-                                      adProduct IN ('nct', 'mct'), '05',
-                                      adProduct IN ('pnt', 'mnt'), '07',
-                                      'null'
-                                  )                                            as ADVRTS_PRDT_CODE,
-                              multiIf(
-                                      platform IN ('web', 'w', 'W'), '01',
-                                      platform IN ('mobile', 'm', 'M'), '02',
-                                      'null'
-                                  )                                            as PLTFOM_TP_CODE,
-                              adCampain as SITE_CODE,
-                              adverId as ADVER_ID,
-                              visitParamExtractRaw(productCode, 'productCode') as PCODE,
-                              visitParamExtractRaw(productCode, 'productName') as PNAME,
-                              remoteIp as REMOTE_IP,
-                              visitParamExtractRaw(browser, 'code')            as BROWSER_CODE,
-                              freqLog as FREQLOG,
-                              tTime as T_TIME,
-                              kwrdSeq as KWRD_SEQ,
-                              gender as GENDER,
-                              age as AGE,
-                              osCode as OS_CODE,
-                              frameCombiKey as FRAME_COMBI_KEY,
-                            now() as BATCH_DTTM
-                       from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
-                       where 1 = 1
-                         and inventoryId = '{0}'
-                         and adCampain <> ''
-                         and remoteIp <> ''
-                         and logType = 'V'
-                         and toYYYYMMDD(createdDate) = {1}
-                         and toHour(createdDate) = {2}
-                    """.format(MEDIA_SCRIPT_NO, str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:])
-                    View_Df_sql = text(View_Df_sql)
-                    try:
-                        View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
-                        Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
-                                                 how='left')
-                        Merged_Df_List.append(Click_View_Df)
-                    except:
-                        self.connect_db()
-                        View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
-                        Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
-                                                 how='left')
-                        Merged_Df_List.append(Click_View_Df)
-                    Total_Data_Cnt += Click_View_Df.shape[0]
-                    if Total_Data_Cnt >= Maximum_Data_Size :
-                        break
-            Concated_Df = pd.concat(Merged_Df_List)
-            Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
-            if Concated_Df.shape[0] <= Sample_Size:
-                final_df = Concated_Df.drop(columns=['KOREA_DATE'])
-            else:
-                final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
-            self.connect_local_db()
-            final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
-            return True
-        except :
-            print("something error happend")
-            return False
+        
+        Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
+        i = 0
+        if Media_Script_No_Dict == False :
+            while i < 5 :
+                i += 1
+                Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
+            if Media_Script_No_Dict == False:
+                return "Extract_Media_Script_List Function error"
+        for PLTFOM_TP_CODE, Media_Script_List in self.Media_Script_No_Dict.items():
+            Merged_Df_List = []
+            Media_Script_List_Shape = Media_Script_List.shape[0]
+            i = 1
+            Total_Data_Cnt = 0
+            for MEDIA_SCRIPT_NO in Media_Script_List:
+                # print("{0}/{1} start".format(i, Media_Script_List_Shape))
+                i += 1
+                View_Df_sql = """
+                select 
+                    createdDate as LOG_DTTM,
+                    toYYYYMMDD(toTimeZone(createdDate, 'Asia/Seoul') )  as STATS_DTTM,
+                   toHour(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_HH,
+                   toMinute(toTimeZone(createdDate, 'Asia/Seoul') ) as STATS_MINUTE,
+                          inventoryId as MEDIA_SCRIPT_NO,
+                          adType                                           as ADVRTS_TP_CODE,
+                          multiIf(
+                                  adProduct IN ('mba', 'nor', 'banner', 'mbw'), '01',
+                                  adProduct IN ('sky', 'mbb', 'sky_m'), '02',
+                                  adProduct IN ('ico', 'ico_m'), '03',
+                                  adProduct IN ('scn'), '04',
+                                  adProduct IN ('nct', 'mct'), '05',
+                                  adProduct IN ('pnt', 'mnt'), '07',
+                                  'null'
+                              )                                            as ADVRTS_PRDT_CODE,
+                          multiIf(
+                                  platform IN ('web', 'w', 'W'), '01',
+                                  platform IN ('mobile', 'm', 'M'), '02',
+                                  'null'
+                              )                                            as PLTFOM_TP_CODE,
+                          adCampain as SITE_CODE,
+                          adverId as ADVER_ID,
+                          visitParamExtractRaw(productCode, 'productCode') as PCODE,
+                          visitParamExtractRaw(productCode, 'productName') as PNAME,
+                          remoteIp as REMOTE_IP,
+                          visitParamExtractRaw(browser, 'code')            as BROWSER_CODE,
+                          freqLog as FREQLOG,
+                          tTime as T_TIME,
+                          kwrdSeq as KWRD_SEQ,
+                          gender as GENDER,
+                          age as AGE,
+                          osCode as OS_CODE,
+                          frameCombiKey as FRAME_COMBI_KEY,
+                        now() as BATCH_DTTM
+                   from MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
+                   where 1 = 1
+                     and inventoryId = '{0}'
+                     and adCampain <> ''
+                     and remoteIp <> ''
+                     and logType = 'V'
+                     and toYYYYMMDD(createdDate) = {1}
+                     and toHour(createdDate) = {2}
+                """.format(MEDIA_SCRIPT_NO, str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:])
+                View_Df_sql = text(View_Df_sql)
+                try:
+                    View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
+                    Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
+                                             how='left')
+                    Merged_Df_List.append(Click_View_Df)
+                except:
+                    self.connect_db()
+                    View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
+                    Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
+                                             how='left')
+                    Merged_Df_List.append(Click_View_Df)
+                Total_Data_Cnt += Click_View_Df.shape[0]
+                if Total_Data_Cnt >= Maximum_Data_Size :
+                    break
+        Concated_Df = pd.concat(Merged_Df_List)
+        Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
+        if Concated_Df.shape[0] <= Sample_Size:
+            final_df = Concated_Df.drop(columns=['KOREA_DATE'])
+        else:
+            final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
+        self.connect_local_db()
+        self.logger.log("Extract view log to df","success")
+        print(final_df.head())
+        print(final_df.shape)
+        final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
+        self.logger.log("Insert Data to local db","success")
+        return True
+   # except :
+        #    self.logger.log("Extract View event log function {0} {1}".format(PLTFOM_TP_CODE, MEDIA_SCRIPT_NO), "failed")
+         #   print("something error happend")
+          #  return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
