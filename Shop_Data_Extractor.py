@@ -43,6 +43,7 @@ class Shop_Data_Extractor :
             'clickhouse://{0}:{1}@localhost/{2}'.format(self.Clickhouse_id, self.Clickhouse_password,
                                                         self.Clichouse_DB))
         self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
+        print(self.Local_Click_House_Conn)
         return True
 
     def create_shop_property_table(self,table_name):
