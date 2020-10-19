@@ -80,29 +80,25 @@ class Shop_Data_Extractor :
         self.connect_db()
         product_property_df_list = []
         size = ADVER_ID_LIST.shape[0]
-        try :
-            data_count = 0
-            for i, ADVER_ID in enumerate(ADVER_ID_LIST) :
-                price_info_sql = """
-                SELECT 
-                USERID as ADVER_ID,
-                PCODE,PNM,
-                PRICE
-                FROM dreamsearch.SHOP_DATA
-                WHERE USERID = '{0}';
-                """.format(ADVER_ID)
-                sql_text = text(price_info_sql)
-                print(price_info_sql)
-                product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
-                merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
-                print(merged_df)
-                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
-                if i % 10 == 0 :
-                    print("{0}/{1} : ".format(i,size),ADVER_ID)
-            return True
-        except :
-            self.inner_logger.log("ADVER ID : {0}, Index : {1}/{2}".format(ADVER_ID, i, size),"failed")
-            return False
+        data_count = 0
+        for i, ADVER_ID in enumerate(ADVER_ID_LIST) :
+            price_info_sql = """
+            SELECT 
+            USERID as ADVER_ID,
+            PCODE,PNM,
+            PRICE
+            FROM dreamsearch.SHOP_DATA
+            WHERE USERID = '{0}';
+            """.format(ADVER_ID)
+            sql_text = text(price_info_sql)
+            print(price_info_sql)
+            product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
+            merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
+            print(merged_df)
+            merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
+            if i % 10 == 0 :
+                print("{0}/{1} : ".format(i,size),ADVER_ID)
+        return True
 
 if __name__ == "__main__":
 
@@ -117,8 +113,8 @@ if __name__ == "__main__":
     click_house_password = "0000"
     click_house_DB = "TEST"
 
-    shop_data_context = Shop_Data_Extractor(maria_id, maria_password,click_house_id, click_house_password,
-                                            click_house_DB)
+    shop_data_context = Shop_Data_Extractor(maria_id, maria_password,
+                                            click_house_id, click_house_password, click_house_DB)
     adver_id_list = shop_data_context.return_adver_id_list()
     print(adver_id_list)
     product_cate_info = shop_data_context.extract_product_cate_info()
