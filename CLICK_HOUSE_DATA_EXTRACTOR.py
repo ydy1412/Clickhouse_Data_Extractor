@@ -97,6 +97,49 @@ class Click_House_Data_Extractor :
         result = client.execute(DDL_sql)
         return result
 
+    def create_entire_log_table(self, table_name):
+        client = Client(host='localhost')
+        DDL_sql = """
+                CREATE TABLE IF NOT EXISTS {0}.{1}
+                (
+                    mediaId       String,
+                    inventoryId   String,
+                    frameId       String,
+                    logType       String,
+                    adType        String,
+                    adProduct     String,
+                    adCampain     String,
+                    adverId       String,
+                    productCode   String,
+                    cpoint        Decimal(13, 2),
+                    mpoint        Decimal(13, 2),
+                    auid          String,
+                    remoteIp      String,
+                    platform      String,
+                    device        String,
+                    browser       String,
+                    createdDate   DateTime default now(),
+                    freqLog       Nullable(String),
+                    tTime         Nullable(String),
+                    kno           Nullable(String),
+                    kwrdSeq       Nullable(String),
+                    gender        Nullable(String),
+                    age           Nullable(String),
+                    osCode        Nullable(String),
+                    price         Nullable(Decimal(13, 2)),
+                    frameCombiKey Nullable(String)
+                )  engine = MergeTree() 
+                PARTITION BY toYYYYMMDD(createdDate)
+                PRIMARY KEY (mediaId, inventoryId, adverId) 
+                ORDER BY (mediaId, inventoryId, adverId) 
+                SAMPLE BY mediaId 
+                TTL createdDate + INTERVAL 90 DAY
+                SETTINGS index_granularity = 8192
+                """.format(self.local_clickhouse_db_name, table_name)
+        result = client.execute(DDL_sql)
+        return result
+
+
     def check_local_table_name(self, table_name):
         self.connect_local_db()
         check_table_name_sql = """
@@ -454,46 +497,82 @@ class Click_House_Data_Extractor :
         final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
         self.logger.log("Insert Data to local db","success")
         return True
-   # except :
-        #    self.logger.log("Extract View event log function {0} {1}".format(PLTFOM_TP_CODE, MEDIA_SCRIPT_NO), "failed")
-         #   print("something error happend")
-          #  return False
+
+    def Extract_All_Log_Data(self, stats_dttm_hh, table_name):
+        Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh,100)
+        self.connect_local_db()
+        i = 0
+        if Media_Script_No_Dict == False :
+            while i < 5 :
+                i += 1
+                Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
+            if Media_Script_No_Dict == False:
+                return "Extract_Media_Script_List Function error"
+
+        for PLTFOM_TP_CODE, Media_Script_List in self.Media_Script_No_Dict.items():
+            i = 1
+            for MEDIA_SCRIPT_NO in Media_Script_List:
+                # print("{0}/{1} start".format(i, Media_Script_List_Shape))
+                i += 1
+                log_sql = """
+                SELECT * 
+                FROM 
+                MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
+                where 1 = 1
+                     and inventoryId = '{0}'
+                     and adCampain <> ''
+                     and remoteIp <> ''
+                     and toYYYYMMDD(createdDate) = {1}
+                     and toHour(createdDate) = {2}
+                """.format(MEDIA_SCRIPT_NO, str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:])
+                log_sql = text(log_sql)
+                try:
+                    View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
+                    View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+                except:
+                    self.connect_db()
+                    self.connect_local_db()
+                    View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
+                    View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+
+            self.logger.log("Extract view log to df", "success")
+            return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--auto",help="(auto : Y, manual : N, TEST : T ) ", default='T')
+    parser.add_argument("--auto",help="(auto : Y, manual : N, migration : M, Test : T ) ", default='T')
     parser.add_argument("--create_table", help="--add_table ~~ ", default = None )
     args = parser.parse_args()
 
     # For test
-    logger_name = "test"
-    logger_file = "test.json"
-    clickhouse_id = "analysis"
-    clickhouse_password = "analysis@2020"
-    maria_id = "dyyang"
-    maria_password = "dyyang123!"
-    local_clickhouse_id = "click_house_test1"
-    local_clickhouse_password = "0000"
-    local_clickhouse_DB_name = "TEST"
-    local_table_name = 'TEST10'
-    data_cnt_per_hour = 1000
-    sample_size = 1000
+    # logger_name = "test"
+    # logger_file = "test.json"
+    # clickhouse_id = "analysis"
+    # clickhouse_password = "analysis@2020"
+    # maria_id = "dyyang"
+    # maria_password = "dyyang123!"
+    # local_clickhouse_id = "click_house_test1"
+    # local_clickhouse_password = "0000"
+    # local_clickhouse_DB_name = "TEST"
+    # local_table_name = 'TEST10'
+    # data_cnt_per_hour = 1000
+    # sample_size = 1000
 
     # for service
-    # logger_name = input("logger name is : ")
-    # logger_file = input("logger file name is : ")
-    #
-    # clickhouse_id = input("click house id : ")
-    # clickhouse_password = input("clickhouse password : ")
-    # maria_id = input("maria id : ")
-    # maria_password = input("maria password : ")
-    # local_clickhouse_id = input("local clickhouse id : " )
-    # local_clickhouse_password = input("local clickhouse password : " )
-    # local_clickhouse_DB_name = input("local clickhouse DB name : " )
-    # local_table_name = input("local cllickhouse table name : " )
-    #
-    # data_cnt_per_hour = input("the number of data to extract per hour : " )
-    # sample_size = input("Sampling size : " )
+    logger_name = input("logger name is : ")
+    logger_file = input("logger file name is : ")
+
+    clickhouse_id = input("click house id : ")
+    clickhouse_password = input("clickhouse password : ")
+    maria_id = input("maria id : ")
+    maria_password = input("maria password : ")
+    local_clickhouse_id = input("local clickhouse id : " )
+    local_clickhouse_password = input("local clickhouse password : " )
+    local_clickhouse_DB_name = input("local clickhouse DB name : " )
+    local_table_name = input("local cllickhouse table name : " )
+
+    data_cnt_per_hour = input("the number of data to extract per hour : " )
+    sample_size = input("Sampling size : " )
 
     logger = Logger(logger_name, logger_file)
     logger.log("auto mode", args.auto.upper())
@@ -511,6 +590,7 @@ if __name__ == "__main__":
         click_house_context.create_local_table(args.create_table)
         local_table_name = args.create_table
         logger.log("create clickhouse table {0} success".format(local_table_name), 'True')
+
 
     if args.auto.upper() == 'Y' :
         # automatic extracting logic start
@@ -537,6 +617,20 @@ if __name__ == "__main__":
                                                                              int(sample_size))
                 logger.log("Manual_extracting {0} result ".format(Extract_Dttm), extract_view_df_result)
             # manual extracting logic end
+
+    if args.auto.upper() == 'M' :
+        start_dttm = input("extract start dttm is (ex) 20200801 ) : ")
+        from_hh = input("start hour is (ex) 00 hour : 00 ) : ")
+        last_dttm = input("extract last dttm is (ex) 20200827 ) : ")
+        dt_list = pd.date_range(start=start_dttm, end=last_dttm).strftime("%Y%m%d").tolist()
+
+        for stats_dttm in dt_list:
+            logger.log("Migration stats_dttm", stats_dttm)
+            stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in
+                               range(int(from_hh), 24)]
+            for Extract_Dttm in stats_dttm_list:
+                migrate_log_df_result = click_house_context.Extract_All_Log_Data(Extract_Dttm,local_table_name)
+                logger.log("Manual_extracting {0} result ".format(Extract_Dttm), migrate_log_df_result)
 
     elif args.auto.upper() == 'T' :
         return_value = click_house_context.Extract_Product_Property_Info()
