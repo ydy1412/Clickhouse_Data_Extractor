@@ -165,9 +165,9 @@ if __name__ == "__main__":
     else :
         pass
 
-    adver_id_list = shop_data_context.return_adver_id_list()
-    print(adver_id_list)
-    product_cate_info = shop_data_context.extract_product_cate_info()
-    print(shop_data_context.product_cate_info_df)
-    extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
-    print(extract_product_price_info)
+    # adver_id_list = shop_data_context.return_adver_id_list()
+    # print(adver_id_list)
+    # product_cate_info = shop_data_context.extract_product_cate_info()
+    # print(shop_data_context.product_cate_info_df)
+    # extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
+    # print(extract_product_price_info)
