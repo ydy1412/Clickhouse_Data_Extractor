@@ -102,6 +102,7 @@ class Shop_Data_Extractor :
 
     def extract_product_price_info(self, ADVER_ID_LIST, Table_name):
         self.connect_db()
+        self.connect_local_clickhouse_db()
         product_property_df_list = []
         size = ADVER_ID_LIST.shape[0]
         data_count = 0
@@ -116,10 +117,18 @@ class Shop_Data_Extractor :
             """.format(ADVER_ID)
             sql_text = text(price_info_sql)
             print(price_info_sql)
-            product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
-            merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
-            print(merged_df)
-            merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
+            try :
+                product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
+                merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
+                print(merged_df)
+                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
+            except :
+                self.connect_db()
+                self.connect_local_clickhouse_db()
+                product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
+                merged_df = pd.merge(self.product_cate_info_df, product_price_info_df, on=['ADVER_ID', 'PCODE'])
+                print(merged_df)
+                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
             if i % 10 == 0 :
                 print("{0}/{1} : ".format(i,size),ADVER_ID)
         return True
