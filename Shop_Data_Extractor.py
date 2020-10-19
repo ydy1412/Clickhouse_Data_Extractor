@@ -106,12 +106,12 @@ class Shop_Data_Extractor :
 if __name__ == "__main__":
 
     # for develop
-    maria_id = "dyyang"
-    maria_password = "dyyang123!"
+    # maria_id = "dyyang"
+    # maria_password = "dyyang123!"
 
     # for service
-    # maria_id = "analysis"
-    # maria_password = "analysis@2020"
+    maria_id = "analysis"
+    maria_password = "analysis@2020"
 
     shop_data_context = Shop_Data_Extractor(maria_id, maria_password)
     adver_id_list = shop_data_context.return_adver_id_list()
@@ -119,5 +119,5 @@ if __name__ == "__main__":
     product_cate_info = shop_data_context.extract_product_cate_info()
     print(shop_data_context.product_cate_info_df)
     extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list)
-    product_property_df_to_DB(extract_product_price_info)
+    shop_data_context.product_property_df_to_DB(extract_product_price_info,"click_house_test1","0000","TEST","PRODUCT_INFO")
     print(extract_product_price_info)

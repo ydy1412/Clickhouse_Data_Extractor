@@ -1,0 +1,52 @@
+{"timestamp": "2020-10-15T11:32:02.376835+09:00", "component": "20200927", "log": {"event": "auto mode", "event_value": "N"}}
+{"timestamp": "2020-10-15T11:32:02.577461+09:00", "component": "20200927", "log": {"event": "clickhouse context load", "event_value": "success"}}
+{"timestamp": "2020-10-15T11:32:18.146571+09:00", "component": "20200927", "log": {"event": "manual_stats_dttm", "event_value": "20200927"}}
+{"timestamp": "2020-10-15T11:40:17.680287+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092700 result ", "event_value": true}}
+{"timestamp": "2020-10-15T11:47:45.527021+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092701 result ", "event_value": true}}
+{"timestamp": "2020-10-15T11:53:40.660611+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092702 result ", "event_value": true}}
+{"timestamp": "2020-10-15T11:58:31.713543+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092703 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:02:51.710132+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092704 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:06:50.146624+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092705 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:12:04.244036+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092706 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:17:47.916416+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092707 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:25:04.576866+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092708 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:33:43.526794+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092709 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:42:05.722968+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092710 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:49:58.369718+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092711 result ", "event_value": true}}
+{"timestamp": "2020-10-15T12:58:54.525596+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092712 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:07:01.541359+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092713 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:15:18.242627+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092714 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:22:25.220843+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092715 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:30:06.512621+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092716 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:37:52.731037+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092717 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:45:04.655690+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092718 result ", "event_value": true}}
+{"timestamp": "2020-10-15T13:52:44.583240+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092719 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:00:49.534405+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092720 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:07:54.614587+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092721 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:17:22.590921+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092722 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:26:44.967089+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092723 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:26:44.967345+09:00", "component": "20200927", "log": {"event": "manual_stats_dttm", "event_value": "20200928"}}
+{"timestamp": "2020-10-15T14:36:37.469128+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092800 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:43:55.933075+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092801 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:49:08.999485+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092802 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:53:27.477327+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092803 result ", "event_value": true}}
+{"timestamp": "2020-10-15T14:56:57.325583+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092804 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:00:48.734603+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092805 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:06:08.743023+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092806 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:13:52.234159+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092807 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:21:27.493154+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092808 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:28:31.828242+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092809 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:35:27.056034+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092810 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:43:47.865035+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092811 result ", "event_value": true}}
+{"timestamp": "2020-10-15T15:52:15.387546+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092812 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:00:44.572915+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092813 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:08:07.164290+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092814 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:15:55.389492+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092815 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:23:43.142921+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092816 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:32:16.638118+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092817 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:39:37.500155+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092818 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:46:15.893785+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092819 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:52:50.507885+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092820 result ", "event_value": true}}
+{"timestamp": "2020-10-15T16:59:31.159447+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092821 result ", "event_value": true}}
+{"timestamp": "2020-10-15T17:07:12.215324+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092822 result ", "event_value": true}}
+{"timestamp": "2020-10-15T17:15:03.141705+09:00", "component": "20200927", "log": {"event": "Manual_extracting 2020092823 result ", "event_value": true}}
