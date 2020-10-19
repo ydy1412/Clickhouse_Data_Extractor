@@ -147,7 +147,7 @@ if __name__ == "__main__":
                                             click_house_id, click_house_password, click_house_DB)
 
     logger = Logger(logger_name, logger_file)
-    logger.log("auto mode", args.auto.upper())
+    logger.log("create_table", args.create_table.upper())
     table_name = input("New table name : ")
 
     if args.create_table == 'NEW_TABLE' :
