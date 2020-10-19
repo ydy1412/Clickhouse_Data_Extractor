@@ -4,6 +4,16 @@ from sqlalchemy import inspect
 from clickhouse_sqlalchemy import Table, engines
 from clickhouse_driver import Client
 
+# ip to region data library
+import requests
+import numpy
+import json
+import random
+import socket
+import struct
+from geopy.geocoders import Nominatim
+from global_land_mask import globe
+
 import pandas as pd
 import re
 from datetime import date
@@ -27,9 +37,9 @@ class Local_Click_House_DB_Context :
         self.DB_NAME = DB_NAME
         self.TABLE_NAME = TABLE_NAME
         self.connect_db()
-        print("ADVER_CATE_INFO Function", self.Extract_Adver_Cate_Info())
-        print("MEDIA_Property_info Function",self.Extract_Media_Property_Info())
-        print("Product_property_info Function ", self.Extract_Product_Property_Info())
+        # print("ADVER_CATE_INFO Function", self.Extract_Adver_Cate_Info())
+        # print("MEDIA_Property_info Function",self.Extract_Media_Property_Info())
+        # print("Product_property_info Function ", self.Extract_Product_Property_Info())
 
     def connect_db(self) :
         self.Local_Click_House_Engine = create_engine('clickhouse://{0}:{1}@{2}/{3}'.format(self.Local_Clickhouse_Id,
@@ -130,30 +140,12 @@ class Local_Click_House_DB_Context :
         try :
             PRODUCT_PROPERTY_INFO_sql = """
             SELECT
-                    PRODUCT_CATE_INFO.PRODUCT_CODE as PCODE,
-                    PRODUCT_CATE_INFO.ADVER_CATE_NO as PRODUCT_CATE_NO,
-                    PRODUCT_CATE_INFO.FIRST_CATE,
-                    PRODUCT_CATE_INFO.SECOND_CATE,
-                    PRODUCT_CATE_INFO.THIRD_CATE,
-                    sd.PRICE
-                FROM
-                    (SELECT 
-                        apci.*, 
-                        apsc.FIRST_CATE,
-                        apsc.SECOND_CATE,
-                        apsc.THIRD_CATE
-                    FROM dreamsearch.ADVER_PRDT_CATE_INFO as apci
-                    join
-                    ( SELECT * FROM dreamsearch.ADVER_PRDT_STANDARD_CATE) as apsc
-                        on apci.ADVER_CATE_NO = apsc.no) as PRODUCT_CATE_INFO
-                    LEFT JOIN
-                    ( SELECT PCODE, PRICE
-                    FROM
-                    dreamsearch.SHOP_DATA) as sd
-                on PRODUCT_CATE_INFO.PRODUCT_CODE = sd.PCODE;
+            *
+            FROM
+            TEST.PRODUCT_INFO
             """
             sql_text = text(PRODUCT_PROPERTY_INFO_sql)
-            self.Product_Info_Df = pd.read_sql(sql_text,self.Maria_Shop_Conn)
+            self.Product_Info_Df = pd.read_sql(sql_text,self.Local_Click_House_Conn)
             return True
         except : 
             return False
@@ -194,6 +186,17 @@ class Local_Click_House_DB_Context :
             sql_result = pd.merge(sql_result, self.Product_Info_Df, on=['PCODE'], how = 'left')
         return sql_result
 
+    def getting_ip(self, row):
+        """This function calls the api and return the response"""
+        url = f"https://freegeoip.app/json/{row}"  # getting records from getting ip address
+        headers = {
+            'accept': "application/json",
+            'content-type': "application/json"
+        }
+        response = requests.request("GET", url, headers=headers)
+        respond = json.loads(response.text)
+        return respond
+
     def check_table_name(self,table_name ) :
         self.connect_db()
         check_table_name_sql = """
@@ -224,12 +227,11 @@ if __name__ == "__main__" :
     local_clickhouse_password = "0000"
     local_clickhouse_ip = "192.168.100.237:8123"
     local_clickhouse_DB_name = "TEST"
-    local_clickhouse_Table_name = 'TEST_7'
+    local_clickhouse_Table_name = 'CLICK_VIEW_YN_LOG'
     test_context = Local_Click_House_DB_Context(maria_id, maria_password,
                                                 local_clickhouse_id,local_clickhouse_password,
                                                 local_clickhouse_ip,local_clickhouse_DB_name,
                                                 local_clickhouse_Table_name)
-    log_data = test_context.Extract_Click_View_Log('20200924',sample_size = 0.1, data_size=100000)
-    print(test_context.Adver_Cate_Df)
-    print(test_context.Product_Info_Df)
-    print(log_data.head())
+    # log_data = test_context.Extract_Click_View_Log('20200926',sample_size = 0.1, data_size=100000)
+    remote_ip = '114.111.53.44'
+    print(test_context.getting_ip(remote_ip))
