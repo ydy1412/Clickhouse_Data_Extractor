@@ -116,21 +116,22 @@ class Shop_Data_Extractor :
             WHERE USERID = '{0}';
             """.format(ADVER_ID)
             sql_text = text(price_info_sql)
-            print(price_info_sql)
             try :
                 product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
                 merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
-                print(merged_df)
-                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, if_exists='replace')
+                product_property_df_list.append(merged_df)
             except :
                 self.connect_db()
                 self.connect_local_clickhouse_db()
                 product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
                 merged_df = pd.merge(self.product_cate_info_df, product_price_info_df, on=['ADVER_ID', 'PCODE'])
-                print(merged_df)
-                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, if_exists='replace')
+                product_property_df_list.append(merged_df)
             if i % 10 == 0 :
                 print("{0}/{1} : ".format(i,size),ADVER_ID)
+                break
+        final_df = pd.concat(product_property_df_list)
+        print(final_df)
+        final_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index = False, if_exists = 'replace')
         return True
 
 if __name__ == "__main__":
@@ -165,9 +166,9 @@ if __name__ == "__main__":
     else :
         pass
 
-    # adver_id_list = shop_data_context.return_adver_id_list()
-    # print(adver_id_list)
-    # product_cate_info = shop_data_context.extract_product_cate_info()
-    # print(shop_data_context.product_cate_info_df)
-    # extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
-    # print(extract_product_price_info)
+    adver_id_list = shop_data_context.return_adver_id_list()
+    print(adver_id_list)
+    product_cate_info = shop_data_context.extract_product_cate_info()
+    print(shop_data_context.product_cate_info_df)
+    extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
+    print(extract_product_price_info)
