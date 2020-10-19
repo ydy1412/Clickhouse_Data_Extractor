@@ -139,7 +139,6 @@ class Click_House_Data_Extractor :
         result = client.execute(DDL_sql)
         return result
 
-
     def check_local_table_name(self, table_name):
         self.connect_local_db()
         check_table_name_sql = """

@@ -10,6 +10,8 @@ from datetime import date, datetime, timedelta, timezone
 import calendar
 from dateutil.tz import tzlocal
 from logger import Logger
+import argparse
+
 
 class Shop_Data_Extractor :
     def __init__(self, maria_id, maria_password, local_clickhouse_id,
@@ -42,6 +44,28 @@ class Shop_Data_Extractor :
                                                         self.Clichouse_DB))
         self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
         return True
+
+    def create_shop_property_table(self,table_name):
+        client = Client(host='localhost')
+        DDL_sql = """
+         CREATE TABLE IF NOT EXISTS {0}.{1}
+         (
+            ADVER_ID Nullable(String),
+            PCODE Nullable(String),
+            PRODUCT_CATE_NO Nullable(String),
+            FIRST_CATE Nullable(String),
+            SECOND_CATE Nullable(String),
+            THIRD_CATE Nullable(String),
+            PNM Nullable(String),
+            PRICE Nullable(String)
+         ) ENGINE = MergeTree
+         PARTITION BY ADVER_ID
+         ORDER BY (ADVER_ID, PCODE)
+         SAMPLE BY ADVER_ID
+         SETTINGS index_granularity=8192
+         """.format(self.Clichouse_DB, table_name)
+        result = client.execute(DDL_sql)
+        return result
 
     def return_adver_id_list(self):
         self.connect_db()
@@ -102,11 +126,17 @@ class Shop_Data_Extractor :
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--create_table", help="--add_table ~~ ", default = None )
+    args = parser.parse_args()
+
     # for develop
     # maria_id = "dyyang"
     # maria_password = "dyyang123!"
 
     # for service
+    logger_name = input("logger name is : ")
+    logger_file = input("logger file name is : ")
     maria_id = "analysis"
     maria_password = "analysis@2020"
     click_house_id = "click_house_test1"
@@ -115,9 +145,20 @@ if __name__ == "__main__":
 
     shop_data_context = Shop_Data_Extractor(maria_id, maria_password,
                                             click_house_id, click_house_password, click_house_DB)
+
+    logger = Logger(logger_name, logger_file)
+    logger.log("auto mode", args.auto.upper())
+    table_name = input("New table name : ")
+
+    if args.create_table == 'NEW_TABLE' :
+        shop_data_context.create_shop_property_table(table_name)
+        logger.log("create clickhouse table {0} success".format(table_name), 'True')
+    else :
+        pass
+
     adver_id_list = shop_data_context.return_adver_id_list()
     print(adver_id_list)
     product_cate_info = shop_data_context.extract_product_cate_info()
     print(shop_data_context.product_cate_info_df)
-    extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list,'PRODUCT_INFO')
+    extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
     print(extract_product_price_info)
