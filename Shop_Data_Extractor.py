@@ -92,9 +92,11 @@ class Shop_Data_Extractor :
                 WHERE USERID = '{0}';
                 """.format(ADVER_ID)
                 sql_text = text(price_info_sql)
+                print(price_info_sql)
                 product_price_info_df = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)
                 merged_df = pd.merge(self.product_cate_info_df, product_price_info_df,on=['ADVER_ID','PCODE'])
-                merged_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index=False, if_exists='replace')
+                print(merged_df)
+                merged_df.to_sql(Table_name, con=self.Local_Click_House_Conn, index=False, if_exists='replace')
                 if i % 10 == 0 :
                     print("{0}/{1} : ".format(i,size),ADVER_ID)
             return True
