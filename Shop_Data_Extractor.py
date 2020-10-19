@@ -50,8 +50,8 @@ class Shop_Data_Extractor :
         DDL_sql = """
          CREATE TABLE IF NOT EXISTS {0}.{1}
          (
-            ADVER_ID Nullable(String),
-            PCODE Nullable(String),
+            ADVER_ID String,
+            PCODE String,
             PRODUCT_CATE_NO Nullable(String),
             FIRST_CATE Nullable(String),
             SECOND_CATE Nullable(String),
