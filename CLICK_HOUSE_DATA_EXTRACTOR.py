@@ -498,45 +498,28 @@ class Click_House_Data_Extractor :
         self.logger.log("Insert Data to local db","success")
         return True
 
-    def Extract_All_Log_Data(self, stats_dttm_hh, table_name):
-        Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh,100)
+    def Extract_All_Log_Data(self, stats_dttm, table_name):
         self.connect_local_db()
-        i = 0
-        if Media_Script_No_Dict == False :
-            while i < 5 :
-                i += 1
-                Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
-            if Media_Script_No_Dict == False:
-                return "Extract_Media_Script_List Function error"
-
-        for PLTFOM_TP_CODE, Media_Script_List in self.Media_Script_No_Dict.items():
-            i = 1
-            for MEDIA_SCRIPT_NO in Media_Script_List:
-                # print("{0}/{1} start".format(i, Media_Script_List_Shape))
-                i += 1
-                log_sql = """
-                SELECT * 
-                FROM 
-                MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
-                where 1 = 1
-                     and inventoryId = '{0}'
-                     and adCampain <> ''
-                     and remoteIp <> ''
-                     and toYYYYMMDD(createdDate) = {1}
-                     and toHour(createdDate) = {2}
-                """.format(MEDIA_SCRIPT_NO, str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:])
-                log_sql = text(log_sql)
-                try:
-                    View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
-                    View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
-                except:
-                    self.connect_db()
-                    self.connect_local_db()
-                    View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
-                    View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
-
-            self.logger.log("Extract view log to df", "success")
-            return True
+        log_sql = """
+        SELECT * 
+        FROM 
+        MOBON_ANALYSIS.MEDIA_CLICKVIEW_LOG
+        where 1 = 1
+             and toYYYYMMDD(createdDate) = {0}
+        """.format( str(stats_dttm))
+        print(log_sql)
+        log_sql = text(log_sql)
+        try:
+            View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
+            print(View_Df.shape)
+            View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+        except:
+            self.connect_db()
+            self.connect_local_db()
+            View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
+            View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+        self.logger.log("Extract view log to df", "success")
+        return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -586,10 +569,15 @@ if __name__ == "__main__":
                                                      local_clickhouse_DB_name)
 
     logger.log("clickhouse context load", "success")
-    if args.create_table != None :
-        click_house_context.create_local_table(args.create_table)
+    if args.create_table == 'click_yn' :
+        table_name = input("click_yn table name : " ) 
+        click_house_context.create_local_table(table_name)
         local_table_name = args.create_table
         logger.log("create clickhouse table {0} success".format(local_table_name), 'True')
+    elif args.create_table == 'entire_log_yn' : 
+        table_name = input("entire_log_yn table : " ) 
+        click_house_context.create_entire_log_table(table_name)
+        logger.log("create entire_log_yn table", "True")
 
 
     if args.auto.upper() == 'Y' :
@@ -626,11 +614,8 @@ if __name__ == "__main__":
 
         for stats_dttm in dt_list:
             logger.log("Migration stats_dttm", stats_dttm)
-            stats_dttm_list = [stats_dttm + '0{0}'.format(i) if i < 10 else stats_dttm + str(i) for i in
-                               range(int(from_hh), 24)]
-            for Extract_Dttm in stats_dttm_list:
-                migrate_log_df_result = click_house_context.Extract_All_Log_Data(Extract_Dttm,local_table_name)
-                logger.log("Manual_extracting {0} result ".format(Extract_Dttm), migrate_log_df_result)
+            migrate_log_df_result = click_house_context.Extract_All_Log_Data(stats_dttm,local_table_name)
+            logger.log("Migration {0} result ".format(Extract_Dttm), migrate_log_df_result)
 
     elif args.auto.upper() == 'T' :
         return_value = click_house_context.Extract_Product_Property_Info()

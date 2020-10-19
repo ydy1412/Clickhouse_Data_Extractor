@@ -1,6 +1,0 @@
-{"timestamp": "2020-10-14T17:12:36.715508+09:00", "component": "test", "log": {"event": "auto mode", "event_value": "N"}}
-{"timestamp": "2020-10-14T17:12:36.913462+09:00", "component": "test", "log": {"event": "clickhouse context load", "event_value": "success"}}
-{"timestamp": "2020-10-14T17:13:03.093553+09:00", "component": "test", "log": {"event": "manual_stats_dttm", "event_value": "20200926"}}
-{"timestamp": "2020-10-14T17:13:04.643859+09:00", "component": "test", "log": {"event": "Extract_click_Df_2020092615", "event_value": "success"}}
-{"timestamp": "2020-10-14T17:13:04.756816+09:00", "component": "test", "log": {"event": "Extract_Media_Script_list function", "event_value": "success"}}
-{"timestamp": "2020-10-14T17:17:52.407933+09:00", "component": "test", "log": {"event": "Extract view log to df", "event_value": "success"}}

@@ -1,4 +1,0 @@
-{"timestamp": "2020-10-14T16:31:27.075645+09:00", "component": "test2", "log": {"event": "auto mode", "event_value": "N"}}
-{"timestamp": "2020-10-14T16:31:27.289339+09:00", "component": "test2", "log": {"event": "clickhouse context load", "event_value": "success"}}
-{"timestamp": "2020-10-14T16:31:56.019782+09:00", "component": "test2", "log": {"event": "manual_stats_dttm", "event_value": "20200926"}}
-{"timestamp": "2020-10-14T16:39:00.064869+09:00", "component": "test2", "log": {"event": "Manual_extracting 2020092615 result ", "event_value": false}}
