@@ -73,17 +73,19 @@ class PROPERTY_INFO_CONTEXT :
         dreamsearch.ADVER_PRDT_CATE_INFO;
         """
         sql_text = text(adver_id_list_sql)
-        ADVER_ID_LIST = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)['ADVER_ID']
-        return ADVER_ID_LIST
+        self.ADVER_ID_LIST = pd.read_sql(sql_text, self.MariaDB_Engine_Conn)['ADVER_ID']
+        return True
 
-    def create_shop_property_table(self, ADVER_ID_LIST, table_name):
+    def create_shop_property_table(self, table_name):
         self.connect_db()
+        self.extract_product_cate_info()
+        self.return_adver_id_list()
         product_property_df_list = []
-        size = ADVER_ID_LIST.shape[0]
+        size = self.ADVER_ID_LIST.shape[0]
         data_count = 0
         now_time = datetime.now(tz=tzlocal()).strftime("%Y%m%d%H")
         print("Start_time :", now_time)
-        for i, ADVER_ID in enumerate(ADVER_ID_LIST):
+        for i, ADVER_ID in enumerate(self.ADVER_ID_LIST):
             price_info_sql = """
              SELECT 
              USERID as ADVER_ID,
@@ -110,7 +112,7 @@ class PROPERTY_INFO_CONTEXT :
         final_df.to_sql(table_name, con=self.Local_Click_House_Engine, index_label='id', if_exists='replace')
         return True
 
-    def create_adver_property_table(self,table_name) :
+    def create_adver_property_table(self, table_name) :
         self.connect_db()
         try:
             Adver_Cate_Df_sql = """
@@ -145,7 +147,7 @@ class PROPERTY_INFO_CONTEXT :
             print("Extract_Adver_Cate_Info error happend")
             return False
 
-    def create_media_property_table(self,table_name ):
+    def create_media_property_table(self, table_name ):
         self.connect_db()
         try :
             PAR_PROPERTY_INFO_sql = """
@@ -209,22 +211,15 @@ if __name__ == "__main__":
     click_house_password = "0000"
     click_house_DB = "TEST"
 
-    shop_data_context = Shop_Data_Extractor(maria_id, maria_password,
+    Property_Info_Context = PROPERTY_INFO_CONTEXT(maria_id, maria_password,
                                             click_house_id, click_house_password, click_house_DB)
 
     logger = Logger(logger_name, logger_file)
-    logger.log("create_table", args.create_table.upper())
-    table_name = input("New table name : ")
+    Shop_Property_Return = Property_Info_Context.create_shop_property_table('SHOP_PROPERTY_INFO')
+    logger.log("Shop_Property_Return", Shop_Property_Return)
+    Adver_Property_Return = Property_Info_Context.create_adver_property_table('ADVER_PROPERTY_INFO')
+    logger.log("Adver_Property_Return", Adver_Property_Return)
+    Media_Property_Return = Property_Info_Context.create_media_property_table('MEDIA_PROPERTY_INFO')
+    logger.log("Media_Property_Return", Media_Property_Return)
 
-    if args.create_table == 'NEW_TABLE' :
-        shop_data_context.create_shop_property_table(table_name)
-        logger.log("create clickhouse table {0} success".format(table_name), 'True')
-    else :
-        pass
 
-    adver_id_list = shop_data_context.return_adver_id_list()
-    print(adver_id_list)
-    product_cate_info = shop_data_context.extract_product_cate_info()
-    print(shop_data_context.product_cate_info_df)
-    extract_product_price_info = shop_data_context.extract_product_price_info(adver_id_list, table_name)
-    print(extract_product_price_info)
