@@ -23,7 +23,7 @@ class Shop_Data_Extractor :
 
         self.Clickhouse_id = local_clickhouse_id
         self.Clickhouse_password = local_clickhouse_password
-        self.Clichouse_DB = local_clickhouse_db_name
+        self.Clickhouse_DB = local_clickhouse_db_name
 
         local_tz = tzlocal()
         now_time = datetime.now(tz=local_tz).strftime("%Y%m%d%H")
@@ -41,7 +41,7 @@ class Shop_Data_Extractor :
     def connect_local_clickhouse_db(self):
         self.Local_Click_House_Engine = create_engine(
             'clickhouse://{0}:{1}@localhost/{2}'.format(self.Clickhouse_id, self.Clickhouse_password,
-                                                        self.Clichouse_DB))
+                                                        self.Clickhouse_DB))
         self.Local_Click_House_Conn = self.Local_Click_House_Engine.connect()
         print(self.Local_Click_House_Conn)
         return True
@@ -107,6 +107,8 @@ class Shop_Data_Extractor :
         product_property_df_list = []
         size = ADVER_ID_LIST.shape[0]
         data_count = 0
+        now_time = datetime.now(tz= tzlocal()).strftime("%Y%m%d%H")
+        print("Start_time :", now_time)
         for i, ADVER_ID in enumerate(ADVER_ID_LIST) :
             price_info_sql = """
             SELECT 
@@ -129,9 +131,9 @@ class Shop_Data_Extractor :
                 product_property_df_list.append(merged_df)
             if i % 10 == 0 :
                 print("{0}/{1} : ".format(i,size),ADVER_ID)
-                break
+        now_time = datetime.now(tz=tzlocal()).strftime("%Y%m%d%H")
         final_df = pd.concat(product_property_df_list)
-        print(final_df)
+        print("End time : ", now_time)
         final_df.to_sql(Table_name, con=self.Local_Click_House_Engine, index = False, if_exists = 'replace')
         return True
 
