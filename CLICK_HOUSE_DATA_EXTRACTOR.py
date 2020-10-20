@@ -22,7 +22,7 @@ import argparse
 class Click_House_Data_Extractor :
 
     def __init__( self, clickhouse_id, clickhouse_password, maria_id, maria_password, local_clickhouse_id,
-                  local_clickhouse_password, local_clickhouse_db_name, logger_name = "test", logger_file="inner_logger.json" ):
+                  local_clickhouse_password, local_clickhouse_db_name, logger_name = "test", logger_file="inner_logger.json",Maria_DB = False ):
 
         self.clickhouse_id = clickhouse_id
         self.clickhouse_password = clickhouse_password
@@ -41,16 +41,19 @@ class Click_House_Data_Extractor :
         self.MariaDB_Engine = None
         self.MariaDB_Engine_Conn = None
 
+        self.Maria_DB = Maria_DB
+
         self.connect_db()
 
     def connect_db(self) :
         self.Click_House_Engine = create_engine('clickhouse://{0}:{1}@192.168.3.230:8123/'
                                                 'MOBON_ANALYSIS'.format(self.clickhouse_id, self.clickhouse_password))
         self.Click_House_Conn = self.Click_House_Engine.connect()
-
-        self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
-                                            .format(self.maria_id, self.maria_password))
-        self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
+        
+        if self.Maria_DB : 
+            self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
+                                                .format(self.maria_id, self.maria_password))
+            self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
         return True
     def connect_local_db(self):
         self.Local_Click_House_Engine = create_engine(
@@ -357,7 +360,7 @@ class Click_House_Data_Extractor :
         self.connect_db()
         Ms_List_Sql = """
         SELECT
-        tb.inventoryId, tb.cnt
+        tb.inventoryId as MEDIA_SCRIPT_NO, tb.cnt
         from
         (SELECT
         inventoryId, count(*) as cnt
@@ -371,10 +374,12 @@ class Click_House_Data_Extractor :
                  and toHour(createdDate) = {1}
         group by inventoryId
         order by  count() desc) as tb
-        where tb.cnt >= {2};
+        where tb.cnt >= {2}
         """.format(str(stats_dttm_hh)[:-2], str(stats_dttm_hh)[-2:], min_click_cnt)
         try :
-            self.Ms_List = pd.read_sql(Ms_List_Sql, self.Click_House_Conn)['MEDIA_SCRIPT_NO']
+            Ms_List_Sql = text(Ms_List_Sql)
+            Ms_result = pd.read_sql_query(Ms_List_Sql, self.Click_House_Conn)
+            self.Ms_List = Ms_result['MEDIA_SCRIPT_NO']
             self.logger.log("Extract_Media_Script_list function","Success")
             return True
         except :
@@ -395,7 +400,7 @@ class Click_House_Data_Extractor :
                 Media_Script_No_Dict = self.Extract_Media_Script_List(stats_dttm_hh)
             if Media_Script_No_Dict == False:
                 return "Extract_Media_Script_List Function error"
-        Media_Script_cnt = self.Ms_list.shape[0]
+        Media_Script_cnt = self.Ms_List.shape[0]
         i = 0
         Total_Data_Cnt = 0
         Merged_Df_List = []
@@ -462,19 +467,23 @@ class Click_House_Data_Extractor :
             Total_Data_Cnt += Click_View_Df.shape[0]
             if Total_Data_Cnt >= Maximum_Data_Size :
                 break
-        Concated_Df = pd.concat(Merged_Df_List)
-        Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
-        if Concated_Df.shape[0] <= Sample_Size:
-            final_df = Concated_Df.drop(columns=['KOREA_DATE'])
-        else:
-            final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
-        self.connect_local_db()
-        self.logger.log("Extract view log to df","success")
-        print(final_df.head())
-        print(final_df.shape)
-        final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
-        self.logger.log("Insert Data to local db","success")
-        return True
+        try : 
+            Concated_Df = pd.concat(Merged_Df_List)
+            Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
+            if Concated_Df.shape[0] <= Sample_Size:
+                final_df = Concated_Df.drop(columns=['KOREA_DATE'])
+            else:
+                final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
+            self.connect_local_db()
+            self.logger.log("Extract view log to df","success")
+            print(final_df.head())
+            print(final_df.shape)
+            final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
+            self.logger.log("Insert Data to local db","success")
+            return True
+        except :
+            self.logger.log("something error happened","error")
+            return False
 
     def Extract_All_Log_Data(self, stats_dttm, table_name):
         self.connect_local_db()
