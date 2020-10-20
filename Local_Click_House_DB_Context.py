@@ -93,31 +93,25 @@ class Local_Click_House_DB_Context :
         except : 
             return False
 
-    def Extract_Click_View_Log (self, stats_dttm, stats_hh = None, Adver_Info = False,
-                                Media_Info = False, Product_Info = False,
-                                sample_size= 0.1, data_size = 1000000) :
+    def Extract_Click_View_Log (self, start_dttm, last_dttm, Adver_Info = False,
+                                Media_Info = False, Product_Info = False, data_size = 1000000) :
         self.connect_db()
-        if stats_hh != None :
+        return_df_list = []
+        data_cnt = 0
+        rotation_cnt = int(data_size/10000)
+        while data_cnt < data_size :
+            sampling_parameter = random.random()
+            minute_sample_parameter = random.randint(0,60)
             Extract_Data_sql = """
             SELECT * FROM
             {0}
             sample {1}
             where STATS_DTTM = {2}
-            and STATS_HH = {3}
-            limit {4}
+            and STATS_MINUTE = {3}
+            limit 
             """.format(self.DB_NAME+'.'+self.TABLE_NAME, sample_size, stats_dttm, stats_hh, data_size )
             sql_text = text(Extract_Data_sql)
             sql_result = pd.read_sql(sql_text, self.Local_Click_House_Conn)
-        else :
-            print("no stats_hh")
-            Extract_Data_sql = """
-            SELECT * FROM
-            {0}
-            sample {1}
-            where STATS_DTTM = {2}
-            limit {3}
-            """.format(self.DB_NAME+'.'+self.TABLE_NAME, sample_size,
-                       stats_dttm, data_size )
             print(Extract_Data_sql)
             sql_text = text(Extract_Data_sql)
             sql_result = pd.read_sql(sql_text,self.Local_Click_House_Conn)
