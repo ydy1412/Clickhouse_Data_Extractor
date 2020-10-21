@@ -91,9 +91,47 @@ class Click_House_Data_Extractor :
             CLICK_YN UInt8,
             BATCH_DTTM DateTime
         ) ENGINE = MergeTree
-        PARTITION BY  STATS_DTTM
+        PARTITION BY  ( STATS_DTTM, STATS_MINUTE)
         ORDER BY (STATS_DTTM, STATS_HH)
-        SAMPLE BY STATS_DTTM
+        SAMPLE BY ( STATS_DTTM, STATS_MINUTE )
+        TTL BATCH_DTTM + INTERVAL 90 DAY
+        SETTINGS index_granularity=8192
+        """.format(self.local_clickhouse_db_name, table_name)
+        result = client.execute(DDL_sql)
+        return result
+
+    def create_new_local_table(self, table_name):
+        client = Client(host='localhost')
+        DDL_sql = """
+        CREATE TABLE IF NOT EXISTS {0}.{1}
+        (
+            LOG_DTTM DateTime('Asia/Seoul'),
+            STATS_DTTM  UInt32,
+            STATS_HH  UInt8,
+            STATS_MINUTE UInt8, 
+            MEDIA_SCRIPT_NO String,
+            SITE_CODE String,
+            ADVER_ID String,
+            REMOTE_IP String,
+            ADVRTS_PRDT_CODE Nullable(String),
+            ADVRTS_TP_CODE Nullable(String),
+            PLTFOM_TP_CODE Nullable(String),
+            PCODE Nullable(String),
+            PNAME Nullable(String), 
+            BROWSER_CODE Nullable(String),
+            FREQLOG Nullable(String),
+            T_TIME Nullable(String),
+            KWRD_SEQ Nullable(String),
+            GENDER Nullable(String),
+            AGE Nullable(String),
+            OS_CODE Nullable(String),
+            FRAME_COMBI_KEY Nullable(String),
+            CLICK_YN UInt8,
+            BATCH_DTTM DateTime
+        ) ENGINE = MergeTree
+        PARTITION BY  ( STATS_DTTM, STATS_MINUTE)
+        ORDER BY (STATS_DTTM, STATS_HH)
+        SAMPLE BY ( STATS_DTTM, STATS_MINUTE )
         TTL BATCH_DTTM + INTERVAL 90 DAY
         SETTINGS index_granularity=8192
         """.format(self.local_clickhouse_db_name, table_name)
@@ -558,7 +596,7 @@ if __name__ == "__main__":
     logger.log("clickhouse context load", "success")
     if args.create_table == 'click_yn' :
         table_name = input("click_yn table name : " ) 
-        click_house_context.create_local_table(table_name)
+        click_house_context.create_new_local_table(table_name)
         local_table_name = args.create_table
         logger.log("create clickhouse table {0} success".format(local_table_name), 'True')
     elif args.create_table == 'entire_log_yn' : 
