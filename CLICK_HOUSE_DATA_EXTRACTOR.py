@@ -530,15 +530,16 @@ if __name__ == "__main__":
             # manual extracting logic end
 
     if args.auto.upper() == 'M' :
+        old_table_name = input("old log table name is :")
+        new_table_name = input("new log table name is :")
         start_dttm = input("extract start dttm is (ex) 20200801 ) : ")
-        from_hh = input("start hour is (ex) 00 hour : 00 ) : ")
         last_dttm = input("extract last dttm is (ex) 20200827 ) : ")
         dt_list = pd.date_range(start=start_dttm, end=last_dttm).strftime("%Y%m%d").tolist()
 
         for stats_dttm in dt_list:
             logger.log("Migration stats_dttm", stats_dttm)
-            migrate_log_df_result = click_house_context.Extract_All_Log_Data(stats_dttm,local_table_name)
-            logger.log("Migration {0} result ".format(Extract_Dttm), migrate_log_df_result)
+            migrate_log_df_result = click_house_context.migrate_old_to_new_table(stats_dttm, old_table_name, new_table_name)
+            logger.log("Migration {0} result ".format(stats_dttm), migrate_log_df_result)
 
     elif args.auto.upper() == 'T' :
         return_value = click_house_context.Extract_Product_Property_Info()
