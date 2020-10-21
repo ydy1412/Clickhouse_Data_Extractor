@@ -54,8 +54,7 @@ class Click_House_Data_Extractor :
             self.MariaDB_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.108:3306/dreamsearch'
                                                 .format(self.maria_id, self.maria_password))
             self.MariaDB_Engine_Conn = self.MariaDB_Engine.connect()
-        return True
-    def connect_local_db(self):
+
         self.Local_Click_House_Engine = create_engine(
             'clickhouse://{0}:{1}@localhost/{2}'.format(self.local_clickhouse_id, self.local_clickhouse_password,
                                                         self.local_clickhouse_db_name))
@@ -129,14 +128,47 @@ class Click_House_Data_Extractor :
             CLICK_YN UInt8,
             BATCH_DTTM DateTime
         ) ENGINE = MergeTree
-        PARTITION BY  ( STATS_DTTM, STATS_MINUTE)
+        PARTITION BY  ( STATS_DTTM, STATS_MINUTE )
         ORDER BY (STATS_DTTM, STATS_HH)
         SAMPLE BY ( STATS_DTTM, STATS_MINUTE )
         TTL BATCH_DTTM + INTERVAL 90 DAY
         SETTINGS index_granularity=8192
         """.format(self.local_clickhouse_db_name, table_name)
         result = client.execute(DDL_sql)
-        return result
+        return True
+
+    def migrate_old_to_new_table(self, stats_dttm, old_table_name, new_table_name):
+        self.connect_db()
+        create_table_result = self.create_new_local_table(new_table_name)
+        self.logger.log("create new table{0}".format(new_table_name), create_table_result)
+        media_script_list_sql = """
+        select 
+        distinct MEDIA_SCRIPT_NO
+        from 
+        TEST.{0}
+        where 1=1
+        and toYYYYMMDD(createdDate) = {1}
+        """.format(old_table_name,str(stats_dttm))
+        media_script_list_sql = text(media_script_list_sql)
+        media_script_list = pd.read_sql(media_script_list_sql, self.Local_Click_House_Conn)['MEDIA_SCRIPT_NO']
+        for MEDIA_SCRIPT_NO in media_script_list :
+            log_data_sql = """
+            select 
+            *
+            from TEST.{0}
+            where 1=1
+            and toYYYYMMDD(createdDate) = {1}
+            and MEDIA_SCRIPT_NO = '{2}'
+            """.format(old_table_name, str(stats_dttm), MEDIA_SCRIPT_NO)
+            log_data_sql = text(log_data_sql)
+            try :
+                log_data_df = pd.read_sql(log_data_sql, self.Local_Click_House_Conn)
+                log_data_df.to_sql(new_table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+            except :
+                self.connect_db()
+                log_data_df = pd.read_sql(log_data_sql, self.Local_Click_House_Conn)
+                log_data_df.to_sql(new_table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
+        return True
 
     def create_entire_log_table(self, table_name):
         client = Client(host='localhost')
@@ -181,7 +213,7 @@ class Click_House_Data_Extractor :
         return result
 
     def check_local_table_name(self, table_name):
-        self.connect_local_db()
+        self.connect_db()
         check_table_name_sql = """
             SHOW TABLES FROM {0}
         """.format(self.local_clickhouse_db_name)
@@ -191,139 +223,6 @@ class Click_House_Data_Extractor :
         if table_name in sql_result:
             return True
         else:
-            return False
-
-    def Extract_Adver_Cate_Info(self) :
-        self.connect_db()
-        try :
-            Adver_Cate_Df_sql = """
-                    select
-                        MCUI.USER_ID as ADVER_ID, ctgr_info.* 
-                        from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
-                        left join
-                        (
-                        SELECT 
-                        third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
-                        second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
-                        first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
-                        from dreamsearch.MOB_CTGR_INFO third_depth
-                        join dreamsearch.MOB_CTGR_INFO second_depth
-                        join dreamsearch.MOB_CTGR_INFO first_depth
-                        on 1=1 
-                        AND third_depth.CTGR_DEPT = 3
-                        AND second_depth.CTGR_DEPT = 2
-                        AND first_depth.CTGR_DEPT = 1
-                        AND second_depth.USER_TP_CODE = '01'
-                        AND second_depth.USER_TP_CODE = first_depth.USER_TP_CODE
-                        AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
-                        AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
-                        AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
-                        on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
-                 """
-            Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, self.MariaDB_Engine_Conn)
-            self.Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
-            return True
-        except :
-            print("Extract_Adver_Cate_Info error happend")
-            return False
-
-    def Extract_Media_Property_Info(self) :
-        self.connect_db()
-        try :
-            PAR_PROPERTY_INFO_sql = """
-            select 
-                ms.no as MEDIA_SCRIPT_NO,
-                MEDIASITE_NO,
-                ms.userid as MEDIA_ID,
-                mpi.SCRIPT_TP_CODE,
-                mpi.MEDIA_SIZE_CODE,
-                product_type as "ENDING_TYPE",
-                m_bacon_yn as "M_BACON_YN",
-                ADVRTS_STLE_TP_CODE as "ADVRTS_STLE_TP_CODE",
-                media_cate_info.scate as "MEDIA_CATE_INFO",
-                media_cate_info.ctgr_nm as "MEDIA_CATE_NAME"
-                from dreamsearch.media_script as ms
-                join
-                (
-                SELECT no, userid, scate, ctgr_nm
-                FROM dreamsearch.media_site as ms
-                join
-                (SELECT mpci.CTGR_SEQ, CTGR_SORT_NO, mci.CTGR_NM
-                FROM dreamsearch.MEDIA_PAR_CTGR_INFO as mpci
-                join dreamsearch.MOB_CTGR_INFO as mci
-                on mpci.CTGR_SEQ = mci.CTGR_SEQ_NEW) as media_ctgr_info
-                on ms.scate = media_ctgr_info.CTGR_SORT_NO) as media_cate_info
-                join
-                (select PAR_SEQ, ADVRTS_PRDT_CODE,SCRIPT_TP_CODE, MEDIA_SIZE_CODE 
-                from dreamsearch.MEDIA_PAR_INFO
-                where PAR_EVLT_TP_CODE ='04') as mpi
-                on ms.mediasite_no = media_cate_info.no
-                and media_cate_info.scate = {0}
-                and mpi.par_seq = ms.no;
-            """
-            result_list = []
-            for i in range(1, 18):
-                result = pd.read_sql(PAR_PROPERTY_INFO_sql.format(i), self.MariaDB_Engine_Conn)
-                result_list.append(result)
-            self.Media_Info_Df = pd.concat(result_list)
-            self.Media_Info_Df['MEDIA_SCRIPT_NO'] = self.Media_Info_Df['MEDIA_SCRIPT_NO'].astype('str')
-            return True
-        except :
-            return False
-
-    def Extract_Product_Property_Info(self):
-        self.MariaDB_Shop_Engine = create_engine('mysql+pymysql://{0}:{1}@192.168.100.106:3306/dreamsearch'
-                                            .format(self.maria_id, self.maria_password))
-        self.MariaDB_Shop_Conn = self.MariaDB_Shop_Engine.connect()
-        try :
-            Extract_AdverID_sql = """
-            SELECT 
-                apci.ADVER_ID,
-                apci.PRODUCT_CODE as PCODE,
-                apci.ADVER_CATE_NO as PRODUCT_CATE_CODE,
-                apsc.FIRST_CATE, 
-                apsc.SECOND_CATE, 
-                apsc.THIRD_CATE
-                FROM
-                dreamsearch.ADVER_PRDT_CATE_INFO as apci
-            join
-                (select * 
-                from dreamsearch.ADVER_PRDT_STANDARD_CATE) as apsc
-            on apci.ADVER_CATE_NO = apsc.no;
-            """
-            sql_text = text(Extract_AdverID_sql)
-            result = pd.read_sql(sql_text,self.MariaDB_Shop_Conn)
-            print(result.head())
-            ADVER_ID_LIST = result['ADVER_ID'].unique()
-            number_of_ADVER_ID = len(ADVER_ID_LIST)
-            print(number_of_ADVER_ID)
-            print(int(number_of_ADVER_ID/10))
-            divide_cnt = int(number_of_ADVER_ID/10)
-            Price_Info_List = []
-            i = 0
-
-            for ADVER_ID in ADVER_ID_LIST :
-                i += 1
-                if i % divide_cnt == 0 :
-                    print(i)
-                Price_Info_sql = """
-                SELECT
-                USERID as ADVER_ID,
-                PCODE,
-                PRICE
-                FROM
-                dreamsearch.SHOP_DATA
-                WHERE
-                USERID = '{0}';
-                """.format(ADVER_ID)
-                sql_text = text(Price_Info_sql)
-                Price_Info_List.append(pd.read_sql(sql_text,self.MariaDB_Shop_Conn))
-            Price_Info_df = pd.concat(Price_Info_List)
-            Product_Info_df = pd.merge(result, Price_Info_df, on=['ADVER_ID','PCODE'], how='left')
-            print(Product_Info_df)
-            # Product_Info_df.to_sql('PRODUCT_PROPERTY_INFO', con=self.Local_Click_House_Engine, index=False )
-            return True
-        except :
             return False
 
     def Extract_Click_Stats_Date(self, stats_dttm_hh, hours=1):
@@ -368,7 +267,7 @@ class Click_House_Data_Extractor :
         self.connect_db()
         try : 
             maria_db_sql = """
-                select min(stats_dttm) as initial_date, max(stats_dttm) as last_date from BILLING.MOB_CAMP_MEDIA_HH_STATS;
+                select min(stats_dttm) as initial_date, max(stats_dttm) as last_date from BILLING.MOB_CAMP_MEDIA_HH_STATS
             """
             maria_db_sql = text(maria_db_sql)
             result = pd.read_sql(maria_db_sql,self.MariaDB_Engine_Conn)
@@ -512,7 +411,7 @@ class Click_House_Data_Extractor :
                 final_df = Concated_Df.drop(columns=['KOREA_DATE'])
             else:
                 final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
-            self.connect_local_db()
+            self.connect_db()
             self.logger.log("Extract view log to df","success")
             print(final_df.head())
             print(final_df.shape)
@@ -524,7 +423,7 @@ class Click_House_Data_Extractor :
             return False
 
     def Extract_All_Log_Data(self, stats_dttm, table_name):
-        self.connect_local_db()
+        self.connect_db()
         log_sql = """
         SELECT * 
         FROM 
@@ -540,7 +439,6 @@ class Click_House_Data_Extractor :
             View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
         except:
             self.connect_db()
-            self.connect_local_db()
             View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
             View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
         self.logger.log("Extract view log to df", "success")
