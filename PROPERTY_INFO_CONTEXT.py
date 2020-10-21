@@ -265,7 +265,46 @@ class PROPERTY_INFO_CONTEXT :
         return True
         #except :
         #    return False
-    
+        
+    def create_mobon_com_code_table(self) : 
+        client = Client(host='localhost')
+        DDL_sql = """
+        CREATE TABLE IF NOT EXISTS TEST.MOBON_COM_CODE
+        (
+        STATS_DTTM String,
+        CODE_TP_ID Nullable(String),
+        CODE_ID Nullable(String),
+        CODE_VAL Nullable(String),
+        USE_YN Nullable(String),
+        CODE_DESC Nullable(String)
+        ) ENGINE = MergeTree
+        PARTITION BY STATS_DTTM
+        ORDER BY STATS_DTTM
+        SETTINGS index_granularity=8192
+        """
+        result = client.execute(DDL_sql)
+        return result
+        
+    def update_mobon_com_code_table(self) : 
+        self.connect_db()
+        mobon_com_code_sql = """
+        select
+            CODE_TP_ID,
+            CODE_ID,
+            CODE_VAL,
+            USE_YN,
+            CODE_DESC
+            FROM
+        dreamsearch.MOBON_COM_CODE
+        """
+        mobon_com_code_sql = text(mobon_com_code_sql)
+        mobon_com_code_df = pd.read_sql(mobon_com_code_sql, self.MariaDB_Engine_Conn)
+        mobon_com_code_df['STATS_DTTM'] = datetime.now().strftime('%Y%m%d%H')
+        mobon_com_code_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
+        return True
+
+   
+
     def delete_old_data(self, table_name) :
         self.connect_db()
         dttm_list_sql = """
@@ -284,7 +323,7 @@ class PROPERTY_INFO_CONTEXT :
         else : 
             client = Client(host='localhost')
             DDL_sql = """
-            ALTER TALBE TEST.{0} DELETE WHERE STATS_DTTM <> '{1}'
+            ALTER TABLE TEST.{0} DELETE WHERE STATS_DTTM <> '{1}'
                             """.format(table_name, max_dttm)
             result = client.execute(DDL_sql)
             print("delete old data")
@@ -319,12 +358,26 @@ if __name__ == "__main__":
     logger.log("Shop_Property_Return", Shop_Property_Return)
     Shop_property_update_return = Property_Info_Context.update_shop_property_table('SHOP_PROPERTY_INFO')
     logger.log("Shop_Property_Return", Shop_property_update_return)
+    Delete_Old_data_return = Property_Info_Context.delete_old_data('SHOP_PROPERTY_INFO')
+    logger.log('delete old data',Delete_Old_data_return)
+
     Adver_Property_Return = Property_Info_Context.create_adver_property_table('ADVER_PROPERTY_INFO')
     logger.log("Adver_Property_Return", Adver_Property_Return)
     Adver_Property_update_return = Property_Info_Context.update_adver_property_table('ADVER_PROPERTY_INFO')
     logger.log("Adver_Property_Return", Adver_Property_update_return)
+    Delete_Old_data_return = Property_Info_Context.delete_old_data('ADVER_PROPERTY_INFO')
+    logger.log('delete ADVER_PROPERTY_INFO return', Delete_Old_data_return)
+
     Media_Property_Return = Property_Info_Context.create_media_property_table('MEDIA_PROPERTY_INFO')
     logger.log("Media_Property_Return", Media_Property_Return)
     Media_Property_update_Return = Property_Info_Context.update_media_property_table('MEDIA_PROPERTY_INFO')
     logger.log("Media_Property_Return", Media_Property_update_Return)
+    Delete_Old_data_return = Property_Info_Context.delete_old_data('MEDIA_PROPERTY_INFO')
+    logger.log('delete MEDIA_PROPERTY_INFO data',Delete_Old_data_return)
 
+    Mobon_Com_Code_return = Property_Info_Context.create_mobon_com_code_table()
+    logger.log("create mobon com code table", "success")
+    Update_Mobon_Com_Code_Return = Property_Info_Context.update_mobon_com_code_table()
+    logger.log("update mobon com code table", "success")
+    Delete_old_data_return = Property_Info_Context.delete_old_data('MOBON_COM_CODE')
+    logger.log("detele mobon com code old data" , "success")
