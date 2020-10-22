@@ -5,6 +5,7 @@
 # pip install ipython-sql==0.4.0
 
 from sqlalchemy import create_engine, text
+import numpy as np
 import pandas as pd
 import re
 from datetime import date
@@ -129,8 +130,9 @@ class Click_House_Data_Extractor :
             BATCH_DTTM DateTime
         ) ENGINE = MergeTree
         PARTITION BY  ( STATS_DTTM, STATS_MINUTE )
-        ORDER BY (STATS_DTTM, STATS_HH)
-        SAMPLE BY ( STATS_DTTM, STATS_MINUTE )
+        PRIMARY KEY (STATS_DTTM, STATS_MINUTE)
+        ORDER BY (STATS_DTTM, STATS_MINUTE)
+        SAMPLE BY (  STATS_MINUTE )
         TTL BATCH_DTTM + INTERVAL 90 DAY
         SETTINGS index_granularity=8192
         """.format(self.local_clickhouse_db_name, table_name)
@@ -147,7 +149,7 @@ class Click_House_Data_Extractor :
         from 
         TEST.{0}
         where 1=1
-        and toYYYYMMDD(createdDate) = {1}
+        and STATS_DTTM= {1}
         """.format(old_table_name,str(stats_dttm))
         media_script_list_sql = text(media_script_list_sql)
         media_script_list = pd.read_sql(media_script_list_sql, self.Local_Click_House_Conn)['MEDIA_SCRIPT_NO']
@@ -157,14 +159,15 @@ class Click_House_Data_Extractor :
             *
             from TEST.{0}
             where 1=1
-            and toYYYYMMDD(createdDate) = {1}
+            and STATS_DTTM  = {1}
             and MEDIA_SCRIPT_NO = '{2}'
             """.format(old_table_name, str(stats_dttm), MEDIA_SCRIPT_NO)
             log_data_sql = text(log_data_sql)
             try :
                 log_data_df = pd.read_sql(log_data_sql, self.Local_Click_House_Conn)
                 log_data_df.to_sql(new_table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
-            except :
+            except Exception as e :
+                self.logger.log("Error happend",e)
                 self.connect_db()
                 log_data_df = pd.read_sql(log_data_sql, self.Local_Click_House_Conn)
                 log_data_df.to_sql(new_table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
@@ -260,7 +263,8 @@ class Click_House_Data_Extractor :
             self.Click_Df = pd.concat(Click_Data_Df_List)
             self.logger.log("Extract_click_Df_{0}".format(stats_dttm_hh),"success")
             return True
-        except :
+        except Exception as e :
+            self.logger.log("Error happend",e)
             return False
     
     def Extract_Date_Range_From_DB(self) : 
@@ -273,7 +277,9 @@ class Click_House_Data_Extractor :
             result = pd.read_sql(maria_db_sql,self.MariaDB_Engine_Conn)
             self.maria_initial_date = result['initial_date'].values[0]
             self.maria_last_date = result['last_date'].values[0]
-        except: 
+        except Exception as e: 
+
+            self.logger.log("Error happend",e)
             pass
         
         try :
@@ -289,7 +295,8 @@ class Click_House_Data_Extractor :
             result = pd.read_sql(clickhouse_db_sql, self.Click_House_Conn)
             self.clickhouse_initial_date = result['initial_date'].values[0]
             self.clickhouse_last_date = result['last_date'].values[0]
-        except: 
+        except Exception as e: 
+            self.logger.log("Error happend",e)
             pass
         return True
 
@@ -319,8 +326,8 @@ class Click_House_Data_Extractor :
             self.Ms_List = Ms_result['MEDIA_SCRIPT_NO']
             self.logger.log("Extract_Media_Script_list function","Success")
             return True
-        except :
-            self.logger.log("Extract_Media_Script_list function", "Failed")
+        except Exception as e :
+            self.logger.log("Extract_Media_Script_list function", e)
             return False
 
     def Extract_View_Df(self,
@@ -384,6 +391,7 @@ class Click_House_Data_Extractor :
                where 1 = 1
                  and inventoryId = '{0}'
                  and adCampain <> ''
+                 and adType <> ''
                  and remoteIp <> ''
                  and logType = 'V'
                  and toYYYYMMDD(createdDate) = {1}
@@ -395,7 +403,8 @@ class Click_House_Data_Extractor :
                 Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
                                          how='left')
                 Merged_Df_List.append(Click_View_Df)
-            except:
+            except Exception as e:
+                self.logger.log("Error happend",e)
                 self.connect_db()
                 View_Df = pd.read_sql_query(View_Df_sql, self.Click_House_Conn)
                 Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
@@ -405,21 +414,24 @@ class Click_House_Data_Extractor :
             if Total_Data_Cnt >= Maximum_Data_Size :
                 break
         try : 
+            self.logger.log("extract log data {0}".format(stats_dttm_hh), "success")
             Concated_Df = pd.concat(Merged_Df_List)
             Concated_Df['CLICK_YN'] = Concated_Df['KOREA_DATE'].apply(lambda x: 0 if pd.isnull(x) else 1)
             if Concated_Df.shape[0] <= Sample_Size:
                 final_df = Concated_Df.drop(columns=['KOREA_DATE'])
             else:
                 final_df = Concated_Df.drop(columns=['KOREA_DATE']).sample(Sample_Size)
+            random_array = np.random.rand(final_df.shape[0],)
+            final_df['RANDOM_SAMPLE'] = random_array
             self.connect_db()
-            self.logger.log("Extract view log to df","success")
+            self.logger.log("Add data to df","success")
             print(final_df.head())
             print(final_df.shape)
             final_df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False, if_exists='append')
             self.logger.log("Insert Data to local db","success")
             return True
-        except :
-            self.logger.log("something error happened","error")
+        except Exception as e :
+            self.logger.log("something error happened",e)
             return False
 
     def Extract_All_Log_Data(self, stats_dttm, table_name):
@@ -437,7 +449,8 @@ class Click_House_Data_Extractor :
             View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
             print(View_Df.shape)
             View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
-        except:
+        except Exception as e:
+            self.logger.log("Error happend",e)
             self.connect_db()
             View_Df = pd.read_sql_query(log_sql, self.Click_House_Conn)
             View_Df.to_sql(table_name, con=self.Local_Click_House_Engine, index=False, if_exists='append')
