@@ -273,7 +273,7 @@ class PROPERTY_INFO_CONTEXT :
         #    return False
 
 ##### so many data.....
-     def create_kwrd_property_table(self, table_name):
+    def create_kwrd_property_table(self, table_name):
         client = Client(host='localhost')
         DDL_sql = """
             CREATE TABLE IF NOT EXISTS TEST.{0}
@@ -301,11 +301,10 @@ class PROPERTY_INFO_CONTEXT :
             FROM
         dreamsearch.MOBON_COM_CODE
         """
-        mobon_com_code_sql = text(mobon_com_code_sql)
-        mobon_com_code_df = pd.read_sql(mobon_com_code_sql, self.MariaDB_Engine_Conn)
-        mobon_com_code_df['STATS_DTTM'] = datetime.now().strftime('%Y%m%d%H')
-        mobon_com_code_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
-        edia_Info_Df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False,if_exists='append')
+        kwrd_sql = text(kwrd_sql)
+        kwrd_df = pd.read_sql(kwrd_sql, self.MariaDB_Engine_Conn)
+        kwrd_df['STATS_DTTM'] = datetime.now().strftime('%Y%m%d%H')
+        kwrd_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
         return True
 ##### so skip!
        

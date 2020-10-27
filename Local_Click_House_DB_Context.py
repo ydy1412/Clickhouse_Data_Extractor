@@ -23,7 +23,8 @@ from datetime import date
 from datetime import timedelta, timezone
 from logger import Logger
 
-class Local_Click_House_DB_Context :
+
+class Local_Click_House_DB_Context:
     def __init__(self, Local_Clickhouse_Id, Local_Clickhouse_password, Local_Clickhouse_Ip,
                  DB_NAME, TABLE_NAME):
 
@@ -34,11 +35,16 @@ class Local_Click_House_DB_Context :
         self.TABLE_NAME = TABLE_NAME
         self.connect_db()
         print("ADVER_CATE_INFO Function", self.Extract_Adver_Cate_Info())
-        print("MEDIA_Property_info Function",self.Extract_Media_Property_Info())
-        print("Product_property_info Function ", self.Extract_Product_Property_Info())
         print("Mobon_Com_Code Function", self.Extract_Mobon_Com_Code())
+        print("MEDIA_Property_info Function", self.Extract_Media_Property_Info())
+        print("Product_property_info Function ", self.Extract_Product_Property_Info())
+        print("Function List :")
+        print("1. Show_Inner_Df_List()")
+        print("2. Extract_Sample_Log()")
+        print("3. Extract_Click_View_Log(start_dttm, last_dttm, Adver_Info = False,\
+                                Media_Info = False, Product_Info = False, data_size = 1000000)")
 
-    def connect_db(self) :
+    def connect_db(self):
         self.Local_Click_House_Engine = create_engine('clickhouse://{0}:{1}@{2}/{3}'.format(self.Local_Clickhouse_Id,
                                                                                             self.Local_Clickhouse_password,
                                                                                             self.Local_Clickhouse_Ip,
@@ -69,7 +75,7 @@ class Local_Click_House_DB_Context :
             print("Extract_Adver_Cate_Info error happend")
             return False
 
-    def Extract_Media_Property_Info(self) :
+    def Extract_Media_Property_Info(self):
         self.connect_db()
         try:
             Media_Property_sql = """
@@ -89,14 +95,28 @@ class Local_Click_House_DB_Context :
                  """
             Media_Property_sql = text(Media_Property_sql)
             self.Media_Property_Df = pd.read_sql(Media_Property_sql, self.Local_Click_House_Conn)
-            return True
-        except:
-            print("Extract_Adver_Cate_Info error happend")
+            return self.Extract_Width_Height_Info()
+        except Exception as e:
+            print("{0} error happend".format(e))
             return False
+
+    def Extract_Width_Height_Info(self):
+        df = self.Mobon_Com_Code_Df
+        size_mapping_df = df[(df['CODE_TP_ID'] == 'MEDIA_SIZE_CODE') & (~df['CODE_ID'].isin(['99', '16']))][
+            ['CODE_ID', 'CODE_VAL']]
+        size_mapping_df['WIDTH'] = size_mapping_df['CODE_VAL'].apply(lambda x: x.split('_')[0]).astype('int')
+        size_mapping_df['HEIGHT'] = size_mapping_df['CODE_VAL'].apply(lambda x: x.split('_')[1]).astype('int')
+        size_mapping_df['SIZE_RATIO'] = size_mapping_df['WIDTH'] / size_mapping_df['HEIGHT']
+        size_mapping_df.rename(columns={'CODE_ID': 'MEDIA_SIZE_CODE'}, inplace=True)
+        merged_df = pd.merge(self.Media_Property_Df,
+                             size_mapping_df[['MEDIA_SIZE_CODE', 'WIDTH', 'HEIGHT', 'SIZE_RATIO']],
+                             on=['MEDIA_SIZE_CODE'])
+        self.Media_Property_Df = merged_df
+        return True
 
     def Extract_Product_Property_Info(self):
         self.connect_db()
-        try :
+        try:
             PRODUCT_PROPERTY_INFO_sql = """
                 select
                     ADVER_ID,
@@ -111,14 +131,14 @@ class Local_Click_House_DB_Context :
                 TEST.SHOP_PROPERTY_INFO
             """
             sql_text = text(PRODUCT_PROPERTY_INFO_sql)
-            self.Product_Property_Df = pd.read_sql(sql_text,self.Local_Click_House_Conn)
+            self.Product_Property_Df = pd.read_sql(sql_text, self.Local_Click_House_Conn)
             return True
-        except : 
+        except:
             return False
 
     def Extract_Mobon_Com_Code(self):
         self.connect_db()
-        try :
+        try:
             MOBON_COM_CODE_sql = """
                 select
                     *
@@ -126,58 +146,114 @@ class Local_Click_House_DB_Context :
                 TEST.MOBON_COM_CODE
             """
             sql_text = text(MOBON_COM_CODE_sql)
-            self.Mobon_Com_Code_Df = pd.read_sql(sql_text,self.Local_Click_House_Conn)
+            self.Mobon_Com_Code_Df = pd.read_sql(sql_text, self.Local_Click_House_Conn)
             return True
-        except :
+        except:
             return False
 
-    def Extract_Sample_Log(self):
-        sample_sql = """
-        select 
-        LOG_DTTM,
-        STATS_DTTM,
-        STATS_HH,
-        STATS_MINUTE,
-        MEDIA_SCRIPT_NO,
-        SITE_CODE, 
-        ADVER_ID,
-        extract(REMOTE_IP,'[0-9]+.[0-9]+.[0-9]+.[0-9]+') AS REMOTE_IP,
-        ADVRTS_PRDT_CODE,
-        ADVRTS_TP_CODE,
-        PLTFOM_TP_CODE,
-        PCODE,
-        PNAME,
-        BROWSER_CODE,
-        FREQLOG,
-        T_TIME,
-        KWRD_SEQ,
-        GENDER,
-        AGE,
-        OS_CODE,
-        FRAME_COMBI_KEY,
-        CLICK_YN
-        FROM TEST.CLICK_VIEW_YN_LOG
-        sample 0.1
-        limit 10
-        """
-        sample_sql = text(sample_sql)
-        sql_result = pd.read_sql(sample_sql,self.Local_Click_House_Conn)
-        return sql_result
+    def Show_Inner_Df_List(self):
+        return ['Adver_Cate_Df', 'Product_Property_Df', 'Media_Property_Df', 'Mobon_Com_Code_Df']
 
-    def Extract_Click_View_Log (self, start_dttm, last_dttm, Adver_Info = False,
-                                Media_Info = False, Product_Info = False, data_size = 1000000) :
+    def Extract_Sample_Log(self, table_name, start_dttm, last_dttm, targeting='AD', sample_cnt=10000):
+        data_per_date = int(sample_cnt / 7)
+        result_df_list = []
+        for WEEK in range(1, 8):
+            print(WEEK, "completed")
+            random_number = random.random()
+            if targeting == 'ALL':
+                sample_sql = """
+                select 
+                LOG_DTTM,
+                STATS_DTTM,
+                STATS_HH,
+                STATS_MINUTE,
+                MEDIA_SCRIPT_NO,
+                SITE_CODE, 
+                ADVER_ID,
+                extract(REMOTE_IP,'[0-9]+.[0-9]+.[0-9]+.[0-9]+') AS REMOTE_IP,
+                ADVRTS_PRDT_CODE,
+                ADVRTS_TP_CODE,
+                PLTFOM_TP_CODE,
+                PCODE,
+                PNAME,
+                BROWSER_CODE,
+                FREQLOG,
+                T_TIME,
+                KWRD_SEQ,
+                GENDER,
+                AGE,
+                OS_CODE,
+                FRAME_COMBI_KEY,
+                CLICK_YN
+                FROM TEST.{0}
+                sample 0.1
+                where 1=1 
+                and STATS_DTTM >= {1}
+                and STATS_DTTM <= {2}
+                and toDayOfWeek(LOG_DTTM) = {0}
+                and ADVRTS_PRDT_CODE = '01'
+                and RANDOM_SAMPLE > {3}
+                and RANDOM_SAMPLE < {4}
+                limit {5}
+                """.format(table_name, start_dttm, last_dttm, WEEK, random_number, random_number + 0.05, data_per_date)
+            else:
+                sample_sql = """
+                select 
+                LOG_DTTM,
+                STATS_DTTM,
+                STATS_HH,
+                STATS_MINUTE,
+                MEDIA_SCRIPT_NO,
+                SITE_CODE, 
+                ADVER_ID,
+                extract(REMOTE_IP,'[0-9]+.[0-9]+.[0-9]+.[0-9]+') AS REMOTE_IP,
+                ADVRTS_PRDT_CODE,
+                ADVRTS_TP_CODE,
+                PLTFOM_TP_CODE,
+                PCODE,
+                PNAME,
+                BROWSER_CODE,
+                FREQLOG,
+                T_TIME,
+                KWRD_SEQ,
+                GENDER,
+                AGE,
+                OS_CODE,
+                FRAME_COMBI_KEY,
+                CLICK_YN
+                FROM TEST.{0}
+                sample 0.1
+                where 1=1
+                and STATS_DTTM >= {1}
+                and STATS_DTTM >= {2}
+                and toDayOfWeek(LOG_DTTM) = {3}
+                and ADVRTS_PRDT_CODE = '01'
+                and ADVRTS_TP_CODE = '{4}'
+                and RANDOM_SAMPLE > {5}
+                and RANDOM_SAMPLE < {6}
+                limit {7}
+                """.format(table_name, start_dttm, last_dttm, WEEK, targeting, random_number, random_number + 0.05,
+                           data_per_date)
+            sample_sql = text(sample_sql)
+            sql_result = pd.read_sql(sample_sql, self.Local_Click_House_Conn)
+            result_df_list.append(sql_result)
+        result_df = pd.concat(result_df_list)
+        return result_df
+
+    def Extract_Click_View_Log(self, start_dttm, last_dttm, Adver_Info=False,
+                               Media_Info=False, Product_Info=False, data_size=1000000):
         self.connect_db()
         dt_index = pd.date_range(start=str(start_dttm), end=str(last_dttm))
         dt_list = dt_index.strftime("%Y%m%d").tolist()
         dt_cnt = len(dt_list)
-        data_per_dt = int(data_size/dt_cnt)
+        data_per_dt = int(data_size / dt_cnt)
 
         return_df_list = []
         data_cnt = 0
-        rotation_cnt = int(data_size/10000)
-        while data_cnt < data_size :
+        rotation_cnt = int(data_size / 10000)
+        while data_cnt < data_size:
             sampling_parameter = random.random()
-            minute_sample_parameter = random.randint(0,60)
+            minute_sample_parameter = random.randint(0, 60)
             Extract_Data_sql = """
             SELECT * FROM
             {0}
@@ -185,7 +261,8 @@ class Local_Click_House_DB_Context :
             where STATS_DTTM = {2}
             and STATS_MINUTE = {3}
             limit {4}
-            """.format(self.DB_NAME+'.'+self.TABLE_NAME, sampling_parameter, start_dttm, minute_sample_parameter, data_size )
+            """.format(self.DB_NAME + '.' + self.TABLE_NAME, sampling_parameter, start_dttm, minute_sample_parameter,
+                       data_size)
             sql_text = text(Extract_Data_sql)
             sql_result = pd.read_sql(sql_text, self.Local_Click_House_Conn)
         return sql_result
@@ -201,7 +278,7 @@ class Local_Click_House_DB_Context :
         respond = json.loads(response.text)
         return respond
 
-    def check_table_name(self,table_name ) :
+    def check_table_name(self, table_name):
         self.connect_db()
         check_table_name_sql = """
             SHOW TABLES FROM {0}
@@ -209,9 +286,9 @@ class Local_Click_House_DB_Context :
         sql_text = text(check_table_name_sql)
         sql_result = list(pd.read_sql(sql_text, self.Local_Click_House_Conn)['name'])
         print(sql_result)
-        if table_name in sql_result :
+        if table_name in sql_result:
             return True
-        else :
+        else:
             return False
                 
 if __name__ == "__main__" :
