@@ -106,6 +106,7 @@ class Click_House_Data_Extractor :
         CREATE TABLE IF NOT EXISTS {0}.{1}
         (
             LOG_DTTM DateTime('Asia/Seoul'),
+            RANDOM_SAMPLE Float32,
             STATS_DTTM  UInt32,
             STATS_HH  UInt8,
             STATS_MINUTE UInt8, 
@@ -117,7 +118,6 @@ class Click_House_Data_Extractor :
             ADVRTS_TP_CODE Nullable(String),
             PLTFOM_TP_CODE Nullable(String),
             PCODE Nullable(String),
-            PNAME Nullable(String), 
             BROWSER_CODE Nullable(String),
             FREQLOG Nullable(String),
             T_TIME Nullable(String),
@@ -375,8 +375,7 @@ class Click_House_Data_Extractor :
                           )                                            as PLTFOM_TP_CODE,
                       adCampain as SITE_CODE,
                       adverId as ADVER_ID,
-                      visitParamExtractRaw(productCode, 'productCode') as PCODE,
-                      visitParamExtractRaw(productCode, 'productName') as PNAME,
+                      productCode as PCODE,
                       remoteIp as REMOTE_IP,
                       visitParamExtractRaw(browser, 'code')            as BROWSER_CODE,
                       freqLog as FREQLOG,
@@ -508,8 +507,7 @@ if __name__ == "__main__":
     if args.create_table == 'click_yn' :
         table_name = input("click_yn table name : " ) 
         click_house_context.create_new_local_table(table_name)
-        local_table_name = args.create_table
-        logger.log("create clickhouse table {0} success".format(local_table_name), 'True')
+        logger.log("create clickhouse table {0} success".format(table_name), 'True')
     elif args.create_table == 'entire_log_yn' : 
         table_name = input("entire_log_yn table : " ) 
         click_house_context.create_entire_log_table(table_name)

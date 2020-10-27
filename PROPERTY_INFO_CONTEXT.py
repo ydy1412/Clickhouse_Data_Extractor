@@ -165,12 +165,18 @@ class PROPERTY_INFO_CONTEXT :
         #try:
         Adver_Cate_Df_sql = """
                         select
-                            MCUI.USER_ID as ADVER_ID, ctgr_info.* 
-                            from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
-                            left join
+                            MCUI.USER_ID as ADVER_ID, 
+                            ctgr_info.CTGR_SEQ_3,
+                            ctgr_info.CTGR_NM_3,
+                            ctgr_info.CTGR_SEQ_2,
+                            ctgr_info.CTGR_NM_2,
+                            ctgr_info.CTGR_SEQ_1,
+                            ctgr_info.CTGR_NM_1
+                        from  dreamsearch.MOB_CTGR_USER_INFO as MCUI
+                            join
                             (
                             SELECT 
-                            third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
+                            third_depth.CTGR_SEQ as CTGR_SEQ_KEY, third_depth.CTGR_SEQ_NEW as CTGR_SEQ_3, third_depth.CTGR_NM as CTGR_NM_3,
                             second_depth.CTGR_SEQ_NEW as CTGR_SEQ_2, second_depth.CTGR_NM as CTGR_NM_2,
                             first_depth.CTGR_SEQ_NEW as CTGR_SEQ_1, first_depth.CTGR_NM as CTGR_NM_1
                             from dreamsearch.MOB_CTGR_INFO third_depth
@@ -185,7 +191,7 @@ class PROPERTY_INFO_CONTEXT :
                             AND third_depth.USER_TP_CODE = second_depth.USER_TP_CODE
                             AND second_depth.HIRNK_CTGR_SEQ = first_depth.CTGR_SEQ_NEW
                             AND third_depth.HIRNK_CTGR_SEQ = second_depth.CTGR_SEQ_NEW) as ctgr_info
-                            on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_3;
+                            on MCUI.CTGR_SEQ = ctgr_info.CTGR_SEQ_KEY;
                      """
         Adver_Cate_Df = pd.read_sql(Adver_Cate_Df_sql, self.MariaDB_Engine_Conn)
         Adver_Cate_Df = Adver_Cate_Df.drop_duplicates(subset='ADVER_ID')
@@ -265,7 +271,44 @@ class PROPERTY_INFO_CONTEXT :
         return True
         #except :
         #    return False
-        
+
+##### so many data.....
+     def create_kwrd_property_table(self, table_name):
+        client = Client(host='localhost')
+        DDL_sql = """
+            CREATE TABLE IF NOT EXISTS TEST.{0}
+            (
+            STATS_DTTM String,
+            KWRD_SEQ Nullable(String),
+            KWRD_NM Nullable(String)
+            ) ENGINE = MergeTree
+            PARTITION BY STATS_DTTM
+            ORDER BY STATS_DTTM
+            SETTINGS index_granularity=8192
+            """.format(table_name)
+        result = client.execute(DDL_sql)
+        return result
+
+    def update_kwrd_property_table(self, table_name ):
+        self.connect_db()
+        kwrd_sql = """
+        select
+            CODE_TP_ID,
+            CODE_ID,
+            CODE_VAL,
+            USE_YN,
+            CODE_DESC
+            FROM
+        dreamsearch.MOBON_COM_CODE
+        """
+        mobon_com_code_sql = text(mobon_com_code_sql)
+        mobon_com_code_df = pd.read_sql(mobon_com_code_sql, self.MariaDB_Engine_Conn)
+        mobon_com_code_df['STATS_DTTM'] = datetime.now().strftime('%Y%m%d%H')
+        mobon_com_code_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
+        edia_Info_Df.to_sql(table_name,con = self.Local_Click_House_Engine, index=False,if_exists='append')
+        return True
+##### so skip!
+       
     def create_mobon_com_code_table(self) : 
         client = Client(host='localhost')
         DDL_sql = """
