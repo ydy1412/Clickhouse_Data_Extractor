@@ -13,6 +13,8 @@ import datetime
 import calendar
 from datetime import date
 from datetime import timedelta, timezone
+import time
+
 from logger import Logger
 from clickhouse_sqlalchemy import Table, engines
 from clickhouse_driver import Client
@@ -345,6 +347,9 @@ class Click_House_Data_Extractor :
             if Media_Script_No_Dict == False:
                 return "Extract_Media_Script_List Function error"
         Media_Script_cnt = self.Ms_List.shape[0]
+        if Media_Script_cnt == 0 :
+            return False
+        print("Media_Script_Cnt shape  is ", Media_Script_cnt )
         i = 0
         Total_Data_Cnt = 0
         Merged_Df_List = []
@@ -409,6 +414,7 @@ class Click_House_Data_Extractor :
                 Click_View_Df = pd.merge(View_Df, self.Click_Df, on=['MEDIA_SCRIPT_NO', 'SITE_CODE', 'REMOTE_IP'],
                                          how='left')
                 Merged_Df_List.append(Click_View_Df)
+            time.sleep(15)
             Total_Data_Cnt += Click_View_Df.shape[0]
             if Total_Data_Cnt >= Maximum_Data_Size :
                 break
