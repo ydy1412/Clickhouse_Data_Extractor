@@ -307,7 +307,7 @@ class PROPERTY_INFO_CONTEXT :
         kwrd_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
         return True
 ##### so skip!
-       
+
     def create_mobon_com_code_table(self) : 
         client = Client(host='localhost')
         DDL_sql = """
@@ -343,6 +343,67 @@ class PROPERTY_INFO_CONTEXT :
         mobon_com_code_df = pd.read_sql(mobon_com_code_sql, self.MariaDB_Engine_Conn)
         mobon_com_code_df['STATS_DTTM'] = datetime.now().strftime('%Y%m%d%H')
         mobon_com_code_df.to_sql('MOBON_COM_CODE', con = self.Local_Click_House_Engine, index = False, if_exists='append')
+        return True
+
+    def create_mob_camp_media_hh_stats(self):
+        client = Client(host='localhost')
+        DDL_sql = """
+        CREATE TABLE IF NOT EXISTS TEST.MOB_CAMP_MEDIA_HH_STATS
+        (
+        STATS_DTTM Uint16,
+        STATS_HH Uint16,
+        PLTFOM_TP_CODE String,
+        ADVRTS_PRDT_CODE String,
+        ADVRTS_TP_CODE String,
+        SITE_CODE String,
+        MEDIA_SCRIPT_NO UInt16,
+        ITL_TP_CODE String,
+        ADVER_ID String, 
+        TOT_EPRS_CNT UInt16,
+        PAR_EPRS_CNT UInt16,
+        CLICK_CNT UInt16
+        ) ENGINE = MergeTree
+        PARTITION BY ( STATS_DTTM, STATS_HH, ADVRTS_TP_CODE ) 
+        ORDER BY STATS_DTTM
+        SETTINGS index_granularity=8192
+        """
+        result = client.execute(DDL_sql)
+        return result
+
+    def update_mob_camp_media_hh_stats(self, initial_dttm, last_dttm, ADVRTS_TP_CODE = '01' ):
+        self.connect_db()
+        dt_index = pd.date_range(start=str(initial_dttm), end=str(last_dttm))
+        stats_dttm_list = dt_index.strftime("%Y%m%d").tolist()
+        stats_hh_list = ['0{0}'.format(i) if i < 10 else str(i) for i in range(0, 24)]
+
+        for stats_dttm in stats_dttm_list:
+            for stats_hh in stats_hh_list:
+                sql = """
+                SELECT
+                STATS_DTTM,
+                STATS_HH,
+                PLTFOM_TP_CODE,
+                ADVRTS_PRDT_CODE,
+                ADVRTS_TP_CODE,
+                SITE_CODE,
+                MEDIA_SCRIPT_NO,
+                ITL_TP_CODE,
+                ADVER_ID,
+                TOT_EPRS_CNT,
+                PAR_EPRS_CNT,
+                CLICK_CNT
+                FROM BILLING.MOB_CAMP_MEDIA_HH_STATS
+                WHERE STATS_DTTM = {0}
+                and STATS_HH = '{1}'
+                and ADVRTS_PRDT_CODE = '01'
+                and ADVRTS_TP_CODE = '{2}'
+                and ITL_TP_CODE = '01'
+                and CLICK_CNT > 0;
+                """.format(stats_dttm, stats_hh, ADVRTS_TP_CODE)
+                sql = text(sql)
+                stats_df = pd.read_sql(sql, self.MariaDB_Engine_Conn)
+                stats_df.to_sql('MOB_CAMP_MEDIA_HH_STATS', con = self.Local_Click_House_Engine, index= False, if_exists='append')
+                print(stats_dttm, stats_hh, 'completed')
         return True
 
    
@@ -423,3 +484,10 @@ if __name__ == "__main__":
     logger.log("update mobon com code table", "success")
     Delete_old_data_return = Property_Info_Context.delete_old_data('MOBON_COM_CODE')
     logger.log("detele mobon com code old data" , "success")
+
+    initial_dttm = input("MOB_CAMP_MEDIA_HH_STATS initial dttm ( ex) 20201010 ) :")
+    last_dttm = input("MOB_CAMP_MEDIA_HH_STATS last dttm ( ex) 20201020 ) : ")
+    Create_Camp_Media_Return = Property_Info_Context.create_mob_camp_media_hh_stats()
+    logger.log("Create_Camp_Media_Return", Create_Camp_Media_Return)
+    Update_Camp_Media_Return = Property_Info_Context.update_mob_camp_media_hh_stats(initial_dttm,last_dttm)
+    logger.log("Update_Camp_Media_Return", Update_Camp_Media_Return)
